@@ -5,7 +5,7 @@ Simple python bot for trading forex on oanda.com
 
 It can only trade one instrument
 
-Build on top of https://github.com/happydasch/btoandav20
+Build on top of https://github.com/Morning-Star213/Solidity-swap
 
 This is only a sample for your robot with simple
 sample strategy. You NEED to implement better logic,
