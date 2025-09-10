@@ -24,6 +24,6 @@ Cython
 
 # Note: backtrader and OANDA-specific packages may need to be installed differently on Render
 # These will be handled in the build process if needed:
-# backtrader
-# git+https://github.com/happydasch/btoandav20@v0.2.1#egg=btoandav20
-# git+https://github.com/happydasch/btplotting@v0.1.1#egg=btplotting
+backtrader
+git+https://github.com/happydasch/btoandav20@v0.2.1#egg=btoandav20
+git+https://github.com/happydasch/btplotting@v0.1.1#egg=btplotting
