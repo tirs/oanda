@@ -20,6 +20,25 @@ from pathlib import Path
 import os
 import sys
 
+# Configure logging with proper encoding for Windows
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+# Set console encoding to UTF-8 if possible
+if sys.platform == "win32":
+    try:
+        import codecs
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+    except:
+        pass  # Fallback to default encoding
+
 # Import our trading modules with error handling
 try:
     import settings
@@ -39,26 +58,6 @@ except ImportError as e:
     
     def get_strategy_info(strategy_name):
         return {"name": "Mock Strategy", "description": "Trading modules not available", "parameters": {}}
-
-# Configure logging with proper encoding for Windows
-import sys
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-logger = logging.getLogger(__name__)
-
-# Set console encoding to UTF-8 if possible
-if sys.platform == "win32":
-    try:
-        import codecs
-        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
-        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
-    except:
-        pass  # Fallback to default encoding
 
 # FastAPI app initialization
 app = FastAPI(
