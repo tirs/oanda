@@ -5,14 +5,17 @@ services:
     plan: free
     buildCommand: |
       pip install --upgrade pip
-      pip install -r requirements_web_only.txt
-    startCommand: python -m uvicorn web_app:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30
+      pip install wheel setuptools
+      pip install -r requirements_minimal.txt --timeout 600
+    startCommand: python -m uvicorn app:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 30 --workers 1
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: ACCESS_TOKEN
+        value: "demo_mode"
         sync: false
       - key: ACCOUNT_ID
+        value: "demo_mode"
         sync: false
       - key: ENVIRONMENT
         value: practice

@@ -73,6 +73,15 @@ async def startup_event():
     """Initialize OANDA connection on startup"""
     logger.info("Starting OANDA Trading Bot Application")
     
+    # Check if we have the required environment variables
+    if not settings.ACCESS_TOKEN or settings.ACCESS_TOKEN in ["your_access_token_here", "demo_mode"]:
+        logger.warning("⚠️ OANDA ACCESS_TOKEN not configured - running in demo mode")
+        return
+    
+    if not settings.ACCOUNT_ID or settings.ACCOUNT_ID in ["your_account_id_here", "demo_mode"]:
+        logger.warning("⚠️ OANDA ACCOUNT_ID not configured - running in demo mode")
+        return
+    
     # Test OANDA connection
     try:
         import requests
@@ -111,18 +120,24 @@ async def startup_event():
     except Exception as e:
         logger.error(f"Failed to connect to OANDA: {e}")
     
-    # Start periodic data refresh task
-    asyncio.create_task(periodic_data_refresh())
+    # Start periodic data refresh task (only if not in demo mode)
+    if not (settings.ACCESS_TOKEN in ["your_access_token_here", "demo_mode"] or 
+            settings.ACCOUNT_ID in ["your_account_id_here", "demo_mode"]):
+        asyncio.create_task(periodic_data_refresh())
     
-    # Auto-start trading for 24/7 operation
-    try:
-        logger.info("Auto-starting 24/7 trading...")
-        trading_state.is_trading = True
-        asyncio.create_task(run_trading_bot())
-        logger.info("24/7 trading started successfully")
-    except Exception as e:
-        logger.error(f"Failed to auto-start trading: {e}")
-        trading_state.is_trading = False
+    # Auto-start trading for 24/7 operation (only if not in demo mode)
+    if not (settings.ACCESS_TOKEN in ["your_access_token_here", "demo_mode"] or 
+            settings.ACCOUNT_ID in ["your_account_id_here", "demo_mode"]):
+        try:
+            logger.info("Auto-starting 24/7 trading...")
+            trading_state.is_trading = True
+            asyncio.create_task(run_trading_bot())
+            logger.info("24/7 trading started successfully")
+        except Exception as e:
+            logger.error(f"Failed to auto-start trading: {e}")
+            trading_state.is_trading = False
+    else:
+        logger.info("Running in demo mode - trading disabled")
 
 async def periodic_data_refresh():
     """Periodically refresh account and position data"""
