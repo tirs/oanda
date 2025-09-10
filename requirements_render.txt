@@ -7,23 +7,20 @@ websockets==12.0
 aiofiles==23.2.1
 
 # Core dependencies
-numpy>=1.24.0
+numpy>=1.21.0,<2.0.0
 pandas>=1.5.0
 requests>=2.28.0
 python-dateutil>=2.8.0
 pytz>=2023.3
 
-# Technical Analysis
-talib-binary
+# Technical Analysis (using TA-Lib alternative for better compatibility)
+ta>=0.10.2
 scikit-learn
 scipy
 
 # Trading bot dependencies (simplified for cloud deployment)
 matplotlib>=3.6.0
-Cython
 
-# Note: backtrader and OANDA-specific packages may need to be installed differently on Render
-# These will be handled in the build process if needed:
+# Backtrader and OANDA integration
 backtrader
 git+https://github.com/happydasch/btoandav20@v0.2.1#egg=btoandav20
-git+https://github.com/happydasch/btplotting@v0.1.1#egg=btplotting

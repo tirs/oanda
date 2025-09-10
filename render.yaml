@@ -3,7 +3,9 @@ services:
     name: oanda-trading-bot
     env: python
     plan: free
-    buildCommand: pip install -r requirements_render.txt
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements_minimal.txt
     startCommand: python -m uvicorn app:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
