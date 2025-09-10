@@ -1,0 +1,979 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Portfolio Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Open Positions</p>
+                    <p class="text-2xl font-bold text-white" id="open-positions-count">0</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-pie text-blue-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Total P&L</p>
+                    <p class="text-2xl font-bold" id="total-pnl">$0.00</p>
+                </div>
+                <div class="w-12 h-12 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-dollar-sign text-green-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Margin Used</p>
+                    <p class="text-2xl font-bold text-white" id="margin-used">$0.00</p>
+                </div>
+                <div class="w-12 h-12 bg-orange-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-percentage text-orange-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Today's Trades</p>
+                    <p class="text-2xl font-bold text-white" id="todays-trades">0</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-exchange-alt text-purple-400 text-xl"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Positions -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">Current Positions</h3>
+                <p class="text-slate-400">Active trading positions with SL/TP</p>
+            </div>
+            <div class="flex space-x-2">
+                <button class="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-white text-sm transition-colors" id="close-all-btn">
+                    <i class="fas fa-times mr-2"></i>Close All
+                </button>
+                <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm transition-colors" id="refresh-positions-btn">
+                    <i class="fas fa-sync mr-2"></i>Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="text-slate-400 text-sm border-b border-slate-700">
+                        <th class="text-left pb-3">Instrument</th>
+                        <th class="text-left pb-3">Side</th>
+                        <th class="text-left pb-3">Size</th>
+                        <th class="text-left pb-3">Entry Price</th>
+                        <th class="text-left pb-3">Current Price</th>
+                        <th class="text-left pb-3">P&L</th>
+                        <th class="text-left pb-3">Stop Loss</th>
+                        <th class="text-left pb-3">Take Profit</th>
+                        <th class="text-left pb-3">Duration</th>
+                        <th class="text-center pb-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="positions-table-body" class="text-sm">
+                    <tr>
+                        <td colspan="10" class="text-center py-12 text-slate-400">
+                            <div class="flex flex-col items-center">
+                                <i class="fas fa-spinner fa-spin text-4xl mb-4 opacity-50"></i>
+                                <p class="text-lg mb-2">Loading Positions...</p>
+                                <p class="text-sm">Please wait while we fetch your positions</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Position Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- P&L Chart -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-white">P&L Over Time</h3>
+                <div class="flex space-x-2">
+                    <button id="pnl-1h" class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg">1H</button>
+                    <button id="pnl-4h" class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">4H</button>
+                    <button id="pnl-1d" class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">1D</button>
+                </div>
+            </div>
+            <div class="h-64">
+                <canvas id="pnlChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Position Distribution -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-lg font-bold text-white">Position Distribution</h3>
+                <div class="text-sm text-slate-400">By Instrument</div>
+            </div>
+            <div class="h-64">
+                <canvas id="distributionChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Trades -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">Recent Trades</h3>
+                <p class="text-slate-400">Last completed trades</p>
+            </div>
+            <div class="flex space-x-2">
+                <select id="instrument-filter" class="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm">
+                    <option value="">All Instruments</option>
+                    <option value="EUR_USD">EUR_USD</option>
+                    <option value="GBP_USD">GBP_USD</option>
+                    <option value="USD_JPY">USD_JPY</option>
+                    <option value="AUD_USD">AUD_USD</option>
+                    <option value="USD_CHF">USD_CHF</option>
+                </select>
+                <select id="days-filter" class="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm">
+                    <option value="7">Last 7 days</option>
+                    <option value="30">Last 30 days</option>
+                    <option value="90">Last 90 days</option>
+                </select>
+                <button id="refresh-trades-btn" class="bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-white text-sm transition-colors">
+                    <i class="fas fa-sync mr-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead>
+                    <tr class="text-slate-400 text-sm border-b border-slate-700">
+                        <th class="text-left pb-3">Close Time</th>
+                        <th class="text-left pb-3">Instrument</th>
+                        <th class="text-left pb-3">Side</th>
+                        <th class="text-left pb-3">Size</th>
+                        <th class="text-left pb-3">Entry</th>
+                        <th class="text-left pb-3">Exit</th>
+                        <th class="text-left pb-3">P&L</th>
+                        <th class="text-left pb-3">Duration</th>
+                        <th class="text-left pb-3">Strategy</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-table-body" class="text-sm">
+                    <tr>
+                        <td colspan="9" class="text-center py-8 text-slate-400">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>Loading trades...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="flex items-center justify-between mt-6">
+            <div class="text-sm text-slate-400">
+                Showing <span id="trades-showing">0</span> of <span id="trades-total">0</span> trades
+            </div>
+            <div class="flex space-x-2">
+                <button class="px-3 py-1 text-sm bg-slate-700 text-white rounded-lg hover:bg-slate-600 disabled:opacity-50" id="prev-page" disabled>
+                    Previous
+                </button>
+                <button class="px-3 py-1 text-sm bg-slate-700 text-white rounded-lg hover:bg-slate-600 disabled:opacity-50" id="next-page" disabled>
+                    Next
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trade Statistics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="glass-effect rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Win/Loss Ratio</h3>
+            <div class="flex items-center justify-center">
+                <div class="relative w-32 h-32">
+                    <canvas id="winLossChart"></canvas>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="text-2xl font-bold text-white" id="win-rate-display">0%</div>
+                            <div class="text-xs text-slate-400">Win Rate</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass-effect rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Average Trade Duration</h3>
+            <div class="text-center">
+                <div class="text-3xl font-bold text-blue-400 mb-2" id="avg-duration">0h 0m</div>
+                <div class="text-sm text-slate-400">Average holding time</div>
+                <div class="mt-4 space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Shortest:</span>
+                        <span class="text-white" id="shortest-trade">--</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Longest:</span>
+                        <span class="text-white" id="longest-trade">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass-effect rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-4">Best Performing Pair</h3>
+            <div class="text-center">
+                <div class="text-2xl font-bold text-green-400 mb-2" id="best-pair">EUR_USD</div>
+                <div class="text-sm text-slate-400 mb-4">Most profitable instrument</div>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Total P&L:</span>
+                        <span class="text-green-400" id="best-pair-pnl">+$0.00</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-slate-400">Trades:</span>
+                        <span class="text-white" id="best-pair-trades">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Position Details Modal -->
+<div id="position-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Position Details</h3>
+            <button id="close-modal" class="text-slate-400 hover:text-white">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div id="modal-content">
+            <!-- Position details will be populated here -->
+        </div>
+    </div>
+</div>
+
+<!-- SL/TP Modification Modal -->
+<div id="modify-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-slate-800 rounded-xl p-6 max-w-md w-full mx-4">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Modify Position</h3>
+            <button id="close-modify-modal" class="text-slate-400 hover:text-white">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-400 mb-2">Stop Loss</label>
+                <input type="number" id="modify-stop-loss" step="0.00001" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter stop loss price">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-400 mb-2">Take Profit</label>
+                <input type="number" id="modify-take-profit" step="0.00001" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter take profit price">
+            </div>
+            <div class="flex space-x-3 pt-4">
+                <button id="save-modifications" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors">
+                    Save Changes
+                </button>
+                <button id="cancel-modifications" class="flex-1 bg-slate-600 hover:bg-slate-700 text-white py-2 px-4 rounded-lg transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let pnlChart, distributionChart, winLossChart;
+    let currentPositions = [];
+    let recentTrades = [];
+    let currentModifyingPosition = null;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCharts();
+        loadPositions();
+        loadRecentTrades();
+        setupEventListeners();
+        
+        // Auto-refresh every 10 seconds
+        setInterval(() => {
+            loadPositions();
+            loadPnLHistory('1H');
+        }, 10000);
+    });
+    
+    function initializeCharts() {
+        initializePnLChart();
+        initializeDistributionChart();
+        initializeWinLossChart();
+    }
+    
+    function initializePnLChart() {
+        const ctx = document.getElementById('pnlChart').getContext('2d');
+        
+        pnlChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'P&L',
+                    data: [],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return '$' + value.toFixed(0);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Load initial P&L data
+        loadPnLHistory('1H');
+    }
+    
+    function initializeDistributionChart() {
+        const ctx = document.getElementById('distributionChart').getContext('2d');
+        
+        distributionChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16'],
+                    borderColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#94a3b8',
+                            padding: 20
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializeWinLossChart() {
+        const ctx = document.getElementById('winLossChart').getContext('2d');
+        
+        winLossChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Wins', 'Losses'],
+                datasets: [{
+                    data: [0, 0],
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderColor: ['#10b981', '#ef4444'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+    
+    async function loadPositions() {
+        try {
+            const response = await fetch('/api/positions');
+            const result = await response.json();
+            
+            currentPositions = result.positions || [];
+            
+            // Calculate summary metrics from positions data
+            const summary = {
+                total_positions: currentPositions.length,
+                total_unrealized_pnl: currentPositions.reduce((sum, pos) => sum + (pos.unrealized_pnl || 0), 0),
+                total_margin_used: currentPositions.reduce((sum, pos) => sum + (pos.margin_used || 0), 0)
+            };
+            
+            updatePositionsTable();
+            updatePositionMetrics(summary);
+            updateDistributionChart();
+            
+            // Update account balance if available
+            if (result.account && result.account.balance) {
+                const balanceElement = document.querySelector('.text-2xl.font-bold.text-white');
+                if (balanceElement && balanceElement.textContent.includes('$')) {
+                    balanceElement.textContent = `$${result.account.balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                }
+            }
+            
+        } catch (error) {
+            console.error('Failed to load positions:', error);
+            showError('Failed to load positions');
+        }
+    }
+    
+    async function loadRecentTrades() {
+        try {
+            const instrumentFilter = document.getElementById('instrument-filter').value;
+            const daysFilter = document.getElementById('days-filter').value;
+            
+            const params = new URLSearchParams({
+                limit: '50',
+                days: daysFilter
+            });
+            
+            if (instrumentFilter) {
+                params.append('instrument', instrumentFilter);
+            }
+            
+            // Add timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
+            const response = await fetch(`/api/positions/recent-trades?${params}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            recentTrades = result.trades || [];
+            displayRecentTrades();
+            updateTradeStatistics(result.statistics || {});
+            
+            // Update today's trades count
+            const today = new Date().toISOString().split('T')[0];
+            const todaysTrades = recentTrades.filter(trade => {
+                const tradeDate = new Date(trade.close_time).toISOString().split('T')[0];
+                return tradeDate === today;
+            });
+            
+            const todaysTradesElement = document.getElementById('todays-trades');
+            if (todaysTradesElement) {
+                todaysTradesElement.textContent = todaysTrades.length;
+            }
+            
+        } catch (error) {
+            console.error('Failed to load recent trades:', error);
+            
+            // Show fallback data when API fails
+            recentTrades = [];
+            displayRecentTrades();
+            updateTradeStatistics({
+                total_trades: 0,
+                winning_trades: 0,
+                losing_trades: 0,
+                win_rate: 0,
+                total_pnl: 0,
+                average_duration: 0,
+                shortest_duration: 0,
+                longest_duration: 0,
+                best_pair: { instrument: 'EUR_USD', pnl: 0, trades: 0 }
+            });
+            
+            // Update today's trades count to 0
+            const todaysTradesElement = document.getElementById('todays-trades');
+            if (todaysTradesElement) {
+                todaysTradesElement.textContent = '0';
+            }
+            
+            showError('Unable to load recent trades. Please check your connection.');
+        }
+    }
+    
+    async function loadPnLHistory(period) {
+        try {
+            // Add timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
+            const response = await fetch(`/api/positions/pnl-history?period=${period}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const result = await response.json();
+            
+            if (!result.data || result.data.length === 0) {
+                // Show empty chart when no data
+                pnlChart.data.labels = [];
+                pnlChart.data.datasets[0].data = [];
+                pnlChart.update();
+                return;
+            }
+            
+            const labels = result.data.map(item => {
+                const date = new Date(item.timestamp);
+                if (period === '1H') {
+                    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                } else if (period === '4H') {
+                    return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+                } else {
+                    return date.toLocaleDateString([], {month: 'short', day: 'numeric'});
+                }
+            });
+            
+            const data = result.data.map(item => item.pnl);
+            const finalPnL = data[data.length - 1] || 0;
+            
+            pnlChart.data.labels = labels;
+            pnlChart.data.datasets[0].data = data;
+            pnlChart.data.datasets[0].borderColor = finalPnL >= 0 ? '#10b981' : '#ef4444';
+            pnlChart.data.datasets[0].backgroundColor = finalPnL >= 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+            pnlChart.update();
+            
+        } catch (error) {
+            console.error('Failed to load P&L history:', error);
+            
+            // Show empty chart on error
+            pnlChart.data.labels = [];
+            pnlChart.data.datasets[0].data = [];
+            pnlChart.update();
+        }
+    }
+    
+    function updatePositionsTable() {
+        const tbody = document.getElementById('positions-table-body');
+        
+        if (currentPositions.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center py-12 text-slate-400">
+                        <div class="flex flex-col items-center">
+                            <i class="fas fa-chart-line text-4xl mb-4 opacity-50"></i>
+                            <p class="text-lg mb-2">No Open Positions</p>
+                            <p class="text-sm">Positions will appear here when trading is active</p>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        let html = '';
+        currentPositions.forEach(position => {
+            const sideClass = position.side === 'LONG' ? 'text-green-400' : 'text-red-400';
+            const pnlClass = position.unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400';
+            const pnlSign = position.unrealized_pnl >= 0 ? '+' : '';
+            
+            html += `
+                <tr class="border-b border-slate-700 hover:bg-slate-800">
+                    <td class="py-3 font-medium">${position.instrument}</td>
+                    <td class="py-3 ${sideClass}">${position.side}</td>
+                    <td class="py-3">${Math.abs(position.units).toLocaleString()}</td>
+                    <td class="py-3">${position.entry_price.toFixed(5)}</td>
+                    <td class="py-3">${position.current_price.toFixed(5)}</td>
+                    <td class="py-3 ${pnlClass}">${pnlSign}$${Math.abs(position.unrealized_pnl).toFixed(2)}</td>
+                    <td class="py-3 ${position.stop_loss ? 'text-orange-400' : 'text-slate-500'}">
+                        ${position.stop_loss ? position.stop_loss.toFixed(5) : 'Not Set'}
+                    </td>
+                    <td class="py-3 ${position.take_profit ? 'text-green-400' : 'text-slate-500'}">
+                        ${position.take_profit ? position.take_profit.toFixed(5) : 'Not Set'}
+                    </td>
+                    <td class="py-3">${formatDuration(position.duration_minutes)}</td>
+                    <td class="py-3 text-center">
+                        <div class="flex space-x-1">
+                            <button onclick="modifyPosition('${position.id}')" class="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs text-white transition-colors" title="Modify SL/TP">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button onclick="closePosition('${position.id}')" class="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs text-white transition-colors" title="Close Position">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+    }
+    
+    function updatePositionMetrics(summary) {
+        if (!summary) return;
+        
+        document.getElementById('open-positions-count').textContent = summary.total_positions;
+        
+        const totalPnLElement = document.getElementById('total-pnl');
+        const pnlSign = summary.total_unrealized_pnl >= 0 ? '+' : '';
+        totalPnLElement.textContent = `${pnlSign}$${Math.abs(summary.total_unrealized_pnl).toFixed(2)}`;
+        totalPnLElement.className = `text-2xl font-bold ${summary.total_unrealized_pnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
+        
+        document.getElementById('margin-used').textContent = `$${summary.total_margin_used.toFixed(2)}`;
+    }
+    
+    function updateDistributionChart() {
+        if (currentPositions.length === 0) {
+            distributionChart.data.labels = [];
+            distributionChart.data.datasets[0].data = [];
+            distributionChart.update();
+            return;
+        }
+        
+        const instrumentData = {};
+        currentPositions.forEach(position => {
+            if (!instrumentData[position.instrument]) {
+                instrumentData[position.instrument] = 0;
+            }
+            instrumentData[position.instrument] += Math.abs(position.units);
+        });
+        
+        distributionChart.data.labels = Object.keys(instrumentData);
+        distributionChart.data.datasets[0].data = Object.values(instrumentData);
+        distributionChart.update();
+    }
+    
+    function displayRecentTrades() {
+        const tbody = document.getElementById('trades-table-body');
+        const showing = document.getElementById('trades-showing');
+        const total = document.getElementById('trades-total');
+        
+        if (recentTrades.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="9" class="text-center py-8 text-slate-400">
+                        <i class="fas fa-chart-line text-2xl mb-2 opacity-50"></i>
+                        <p>No trades found</p>
+                    </td>
+                </tr>
+            `;
+            showing.textContent = '0';
+            total.textContent = '0';
+            return;
+        }
+        
+        let html = '';
+        const displayTrades = recentTrades.slice(0, 20);
+        
+        displayTrades.forEach(trade => {
+            const pnl = trade.realized_pnl || trade.pnl || 0;
+            const pnlClass = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+            const sideClass = trade.side === 'LONG' ? 'text-green-400' : 'text-red-400';
+            const pnlSign = pnl >= 0 ? '+' : '';
+            const closeTime = new Date(trade.close_time);
+            
+            html += `
+                <tr class="border-b border-slate-700 hover:bg-slate-800">
+                    <td class="py-3">${closeTime.toLocaleString()}</td>
+                    <td class="py-3 font-medium">${trade.instrument}</td>
+                    <td class="py-3 ${sideClass}">${trade.side}</td>
+                    <td class="py-3">${trade.units.toLocaleString()}</td>
+                    <td class="py-3">${trade.entry_price.toFixed(5)}</td>
+                    <td class="py-3">${trade.exit_price.toFixed(5)}</td>
+                    <td class="py-3 ${pnlClass}">${pnlSign}$${Math.abs(pnl).toFixed(2)}</td>
+                    <td class="py-3">${formatDuration(trade.duration_minutes)}</td>
+                    <td class="py-3 text-slate-400">${trade.strategy}</td>
+                </tr>
+            `;
+        });
+        
+        tbody.innerHTML = html;
+        showing.textContent = displayTrades.length;
+        total.textContent = recentTrades.length;
+        
+        // Update today's trades count
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todaysTrades = recentTrades.filter(trade => {
+            const tradeDate = new Date(trade.close_time);
+            tradeDate.setHours(0, 0, 0, 0);
+            return tradeDate.getTime() === today.getTime();
+        });
+        document.getElementById('todays-trades').textContent = todaysTrades.length;
+    }
+    
+    function updateTradeStatistics(statistics) {
+        if (!statistics) return;
+        
+        // Update win rate display and chart
+        document.getElementById('win-rate-display').textContent = Math.round(statistics.win_rate || 0) + '%';
+        winLossChart.data.datasets[0].data = [statistics.winning_trades || 0, statistics.losing_trades || 0];
+        winLossChart.update();
+        
+        // Update average duration
+        document.getElementById('avg-duration').textContent = formatDuration(statistics.average_duration || 0);
+        
+        // Update shortest and longest trades
+        if (statistics.shortest_duration !== undefined) {
+            document.getElementById('shortest-trade').textContent = statistics.shortest_duration > 0 ? formatDuration(statistics.shortest_duration) : '--';
+        } else {
+            document.getElementById('shortest-trade').textContent = '--';
+        }
+        
+        if (statistics.longest_duration !== undefined) {
+            document.getElementById('longest-trade').textContent = statistics.longest_duration > 0 ? formatDuration(statistics.longest_duration) : '--';
+        } else {
+            document.getElementById('longest-trade').textContent = '--';
+        }
+        
+        // Update best performing pair
+        if (statistics.best_pair && statistics.best_pair.instrument) {
+            document.getElementById('best-pair').textContent = statistics.best_pair.instrument;
+            const pnl = statistics.best_pair.pnl || 0;
+            const pnlSign = pnl >= 0 ? '+' : '';
+            document.getElementById('best-pair-pnl').textContent = `${pnlSign}$${Math.abs(pnl).toFixed(2)}`;
+            document.getElementById('best-pair-pnl').className = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+            document.getElementById('best-pair-trades').textContent = statistics.best_pair.trades || 0;
+        } else {
+            // Default values when no trades
+            document.getElementById('best-pair').textContent = 'EUR_USD';
+            document.getElementById('best-pair-pnl').textContent = '+$0.00';
+            document.getElementById('best-pair-pnl').className = 'text-green-400';
+            document.getElementById('best-pair-trades').textContent = '0';
+        }
+    }
+    
+    function formatDuration(minutes) {
+        const hours = Math.floor(minutes / 60);
+        const mins = Math.floor(minutes % 60);
+        return `${hours}h ${mins}m`;
+    }
+    
+    async function closePosition(positionId) {
+        if (!confirm('Are you sure you want to close this position?')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/positions/${positionId}/close`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showSuccess(`Position closed successfully. P&L: $${result.closed_pnl.toFixed(2)}`);
+                loadPositions(); // Refresh positions
+                loadRecentTrades(); // Refresh trades
+            } else {
+                showError(result.message || 'Failed to close position');
+            }
+        } catch (error) {
+            console.error('Failed to close position:', error);
+            showError('Failed to close position');
+        }
+    }
+    
+    async function closeAllPositions() {
+        if (!confirm('Are you sure you want to close ALL positions? This action cannot be undone.')) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/positions/close-all', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showSuccess(`All ${result.closed_positions} positions closed. Total P&L: $${result.total_pnl.toFixed(2)}`);
+                loadPositions(); // Refresh positions
+                loadRecentTrades(); // Refresh trades
+            } else {
+                showError(result.message || 'Failed to close all positions');
+            }
+        } catch (error) {
+            console.error('Failed to close all positions:', error);
+            showError('Failed to close all positions');
+        }
+    }
+    
+    function modifyPosition(positionId) {
+        const position = currentPositions.find(p => p.id === positionId);
+        if (!position) return;
+        
+        currentModifyingPosition = position;
+        
+        // Pre-fill current values
+        document.getElementById('modify-stop-loss').value = position.stop_loss || '';
+        document.getElementById('modify-take-profit').value = position.take_profit || '';
+        
+        // Show modal
+        document.getElementById('modify-modal').classList.remove('hidden');
+        document.getElementById('modify-modal').classList.add('flex');
+    }
+    
+    async function savePositionModifications() {
+        if (!currentModifyingPosition) return;
+        
+        const stopLoss = document.getElementById('modify-stop-loss').value;
+        const takeProfit = document.getElementById('modify-take-profit').value;
+        
+        const modifications = {};
+        if (stopLoss) modifications.stop_loss = parseFloat(stopLoss);
+        if (takeProfit) modifications.take_profit = parseFloat(takeProfit);
+        
+        if (Object.keys(modifications).length === 0) {
+            showError('Please enter at least one modification');
+            return;
+        }
+        
+        try {
+            const response = await fetch(`/api/positions/${currentModifyingPosition.id}/modify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(modifications)
+            });
+            
+            const result = await response.json();
+            
+            if (result.status === 'success') {
+                showSuccess('Position modified successfully');
+                closeModifyModal();
+                loadPositions(); // Refresh positions
+            } else {
+                showError(result.message || 'Failed to modify position');
+            }
+        } catch (error) {
+            console.error('Failed to modify position:', error);
+            showError('Failed to modify position');
+        }
+    }
+    
+    function closeModifyModal() {
+        document.getElementById('modify-modal').classList.add('hidden');
+        document.getElementById('modify-modal').classList.remove('flex');
+        currentModifyingPosition = null;
+    }
+    
+    function setupEventListeners() {
+        // Close all positions button
+        document.getElementById('close-all-btn').addEventListener('click', closeAllPositions);
+        
+        // Refresh positions button
+        document.getElementById('refresh-positions-btn').addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            icon.classList.add('fa-spin');
+            loadPositions().finally(() => {
+                icon.classList.remove('fa-spin');
+            });
+        });
+        
+        // Refresh trades button
+        document.getElementById('refresh-trades-btn').addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            icon.classList.add('fa-spin');
+            loadRecentTrades().finally(() => {
+                icon.classList.remove('fa-spin');
+            });
+        });
+        
+        // P&L chart period buttons
+        ['1h', '4h', '1d'].forEach(period => {
+            document.getElementById(`pnl-${period}`).addEventListener('click', function() {
+                // Update button states
+                ['1h', '4h', '1d'].forEach(p => {
+                    const btn = document.getElementById(`pnl-${p}`);
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                });
+                
+                this.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+                this.classList.add('bg-blue-600');
+                
+                loadPnLHistory(period.toUpperCase());
+            });
+        });
+        
+        // Trade filters
+        document.getElementById('instrument-filter').addEventListener('change', loadRecentTrades);
+        document.getElementById('days-filter').addEventListener('change', loadRecentTrades);
+        
+        // Modal close buttons
+        document.getElementById('close-modal').addEventListener('click', function() {
+            document.getElementById('position-modal').classList.add('hidden');
+        });
+        
+        document.getElementById('close-modify-modal').addEventListener('click', closeModifyModal);
+        document.getElementById('cancel-modifications').addEventListener('click', closeModifyModal);
+        document.getElementById('save-modifications').addEventListener('click', savePositionModifications);
+    }
+    
+    function showSuccess(message) {
+        // You can implement a toast notification system here
+        alert(message);
+    }
+    
+    function showError(message) {
+        // You can implement a toast notification system here
+        alert('Error: ' + message);
+    }
+    
+    // Global functions for button clicks
+    window.closePosition = closePosition;
+    window.modifyPosition = modifyPosition;
+</script>
+{% endblock %}

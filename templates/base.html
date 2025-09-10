@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ title }} - OANDA Trading Bot{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <style>
+        :root {
+            --primary-bg: #0f172a;
+            --secondary-bg: #1e293b;
+            --accent-bg: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --accent-color: #3b82f6;
+            --success-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
+        }
+        
+        body {
+            background: linear-gradient(135deg, var(--primary-bg) 0%, #1a202c 100%);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        .glass-effect {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+        }
+        
+        .gradient-border {
+            background: linear-gradient(135deg, var(--accent-color), var(--success-color));
+            padding: 1px;
+            border-radius: 0.5rem;
+        }
+        
+        .gradient-border > div {
+            background: var(--secondary-bg);
+            border-radius: calc(0.5rem - 1px);
+        }
+        
+        .sidebar-item {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar-item:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--accent-color);
+        }
+        
+        .sidebar-item.active {
+            background: rgba(59, 130, 246, 0.2);
+            border-left-color: var(--accent-color);
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, var(--secondary-bg) 0%, var(--accent-bg) 100%);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+        }
+        
+        .status-active { background-color: var(--success-color); }
+        .status-inactive { background-color: var(--danger-color); }
+        .status-warning { background-color: var(--warning-color); }
+        
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .trading-button {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            transition: all 0.3s ease;
+        }
+        
+        .trading-button:hover {
+            background: linear-gradient(135deg, #059669, var(--success-color));
+            transform: scale(1.05);
+        }
+        
+        .stop-button {
+            background: linear-gradient(135deg, var(--danger-color), #dc2626);
+        }
+        
+        .stop-button:hover {
+            background: linear-gradient(135deg, #dc2626, var(--danger-color));
+            transform: scale(1.05);
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-track {
+            background: var(--accent-bg);
+        }
+        
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: var(--accent-color);
+            border-radius: 3px;
+        }
+    </style>
+    
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="min-h-screen">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-64 glass-effect border-r border-slate-700">
+            <div class="p-6">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-green-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold text-white">OANDA Bot</h1>
+                        <p class="text-xs text-slate-400">Professional Trading</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="px-4 space-y-2">
+                <a href="/" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:text-white">
+                    <i class="fas fa-tachometer-alt w-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                
+                <a href="/strategies" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:text-white">
+                    <i class="fas fa-brain w-5"></i>
+                    <span>Strategies</span>
+                </a>
+                
+                <a href="/backtest" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:text-white">
+                    <i class="fas fa-history w-5"></i>
+                    <span>Backtesting</span>
+                </a>
+                
+                <a href="/positions" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:text-white">
+                    <i class="fas fa-coins w-5"></i>
+                    <span>Positions</span>
+                </a>
+                
+                <a href="/analytics" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:text-white">
+                    <i class="fas fa-chart-bar w-5"></i>
+                    <span>Analytics</span>
+                </a>
+                
+                <a href="/settings" class="sidebar-item flex items-center space-x-3 px-4 py-3 rounded-lg text-slate-300 hover:text-white">
+                    <i class="fas fa-cog w-5"></i>
+                    <span>Settings</span>
+                </a>
+            </nav>
+            
+            <!-- Trading Status -->
+            <div class="absolute bottom-6 left-4 right-4">
+                <div class="glass-effect rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <span class="status-indicator" id="trading-status-indicator"></span>
+                            <span class="text-sm font-medium" id="trading-status-text">Inactive</span>
+                        </div>
+                        <div class="text-xs text-slate-400" id="last-update">--:--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col overflow-hidden">
+            <!-- Header -->
+            <header class="glass-effect border-b border-slate-700 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white">{{ title }}</h2>
+                        <p class="text-slate-400 text-sm">{{ current_strategy }} Strategy</p>
+                    </div>
+                    
+                    <div class="flex items-center space-x-4">
+                        <!-- Account Balance -->
+                        <div class="text-right">
+                            <div class="text-sm text-slate-400">Account Balance</div>
+                            <div class="text-lg font-bold text-green-400" id="account-balance">$100,000.00</div>
+                        </div>
+                        
+                        <!-- Trading Controls -->
+                        <div class="flex space-x-2">
+                            <button id="start-trading-btn" class="trading-button px-4 py-2 rounded-lg text-white font-medium">
+                                <i class="fas fa-play mr-2"></i>Start Trading
+                            </button>
+                            <button id="stop-trading-btn" class="stop-button px-4 py-2 rounded-lg text-white font-medium hidden">
+                                <i class="fas fa-stop mr-2"></i>Stop Trading
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <!-- Page Content -->
+            <main class="flex-1 overflow-auto p-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+    
+    <!-- WebSocket Connection -->
+    <script>
+        class TradingWebSocket {
+            constructor() {
+                this.ws = null;
+                this.reconnectAttempts = 0;
+                this.maxReconnectAttempts = 5;
+                this.connect();
+            }
+            
+            connect() {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const wsUrl = `${protocol}//${window.location.host}/ws`;
+                
+                this.ws = new WebSocket(wsUrl);
+                
+                this.ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    this.reconnectAttempts = 0;
+                    this.updateConnectionStatus(true);
+                };
+                
+                this.ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.handleMessage(data);
+                };
+                
+                this.ws.onclose = () => {
+                    console.log('WebSocket disconnected');
+                    this.updateConnectionStatus(false);
+                    this.reconnect();
+                };
+                
+                this.ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                };
+            }
+            
+            reconnect() {
+                if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts++;
+                    setTimeout(() => this.connect(), 2000 * this.reconnectAttempts);
+                }
+            }
+            
+            handleMessage(data) {
+                switch (data.type) {
+                    case 'initial_state':
+                        this.updateTradingStatus(data.data.is_trading);
+                        this.updateAccountInfo(data.data.account);
+                        this.updatePositions(data.data.positions);
+                        break;
+                        
+                    case 'market_update':
+                        this.updateAccountInfo(data.data.account);
+                        this.updatePositions(data.data.positions);
+                        this.updateLastUpdate();
+                        break;
+                        
+                    case 'trading_started':
+                        this.updateTradingStatus(true);
+                        this.showNotification('Trading started successfully', 'success');
+                        break;
+                        
+                    case 'trading_stopped':
+                        this.updateTradingStatus(false);
+                        this.showNotification('Trading stopped', 'info');
+                        break;
+                        
+                    case 'strategy_changed':
+                        this.showNotification(`Strategy changed to ${data.data.strategy}`, 'info');
+                        break;
+                        
+                    case 'backtest_complete':
+                        this.handleBacktestResults(data.data);
+                        break;
+                }
+            }
+            
+            updateTradingStatus(isTrading) {
+                const indicator = document.getElementById('trading-status-indicator');
+                const text = document.getElementById('trading-status-text');
+                const startBtn = document.getElementById('start-trading-btn');
+                const stopBtn = document.getElementById('stop-trading-btn');
+                
+                if (isTrading) {
+                    indicator.className = 'status-indicator status-active pulse';
+                    text.textContent = 'Active';
+                    startBtn.classList.add('hidden');
+                    stopBtn.classList.remove('hidden');
+                } else {
+                    indicator.className = 'status-indicator status-inactive';
+                    text.textContent = 'Inactive';
+                    startBtn.classList.remove('hidden');
+                    stopBtn.classList.add('hidden');
+                }
+            }
+            
+            updateAccountInfo(account) {
+                const balanceEl = document.getElementById('account-balance');
+                if (balanceEl && account.balance) {
+                    balanceEl.textContent = `$${account.balance.toLocaleString('en-US', {minimumFractionDigits: 2})}`;
+                }
+            }
+            
+            updatePositions(positions) {
+                // This will be implemented in specific pages
+                if (window.updatePositionsDisplay) {
+                    window.updatePositionsDisplay(positions);
+                }
+            }
+            
+            updateLastUpdate() {
+                const lastUpdateEl = document.getElementById('last-update');
+                if (lastUpdateEl) {
+                    const now = new Date();
+                    lastUpdateEl.textContent = now.toLocaleTimeString();
+                }
+            }
+            
+            updateConnectionStatus(connected) {
+                // Visual indicator for connection status
+                document.body.classList.toggle('ws-connected', connected);
+                document.body.classList.toggle('ws-disconnected', !connected);
+            }
+            
+            showNotification(message, type = 'info') {
+                // Create notification element
+                const notification = document.createElement('div');
+                notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${this.getNotificationClass(type)}`;
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas ${this.getNotificationIcon(type)} mr-2"></i>
+                        <span>${message}</span>
+                        <button class="ml-4 text-white hover:text-gray-300" onclick="this.parentElement.parentElement.remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (notification.parentElement) {
+                        notification.remove();
+                    }
+                }, 5000);
+            }
+            
+            getNotificationClass(type) {
+                const classes = {
+                    success: 'bg-green-600',
+                    error: 'bg-red-600',
+                    warning: 'bg-yellow-600',
+                    info: 'bg-blue-600'
+                };
+                return classes[type] || classes.info;
+            }
+            
+            getNotificationIcon(type) {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+                return icons[type] || icons.info;
+            }
+        }
+        
+        // Initialize WebSocket connection
+        const tradingWS = new TradingWebSocket();
+        
+        // Trading control buttons
+        document.getElementById('start-trading-btn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/start-trading', { method: 'POST' });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+            } catch (error) {
+                tradingWS.showNotification(`Failed to start trading: ${error.message}`, 'error');
+            }
+        });
+        
+        document.getElementById('stop-trading-btn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/stop-trading', { method: 'POST' });
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.detail);
+                }
+            } catch (error) {
+                tradingWS.showNotification(`Failed to stop trading: ${error.message}`, 'error');
+            }
+        });
+        
+        // Update active sidebar item
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentPath = window.location.pathname;
+            const sidebarItems = document.querySelectorAll('.sidebar-item');
+            
+            sidebarItems.forEach(item => {
+                if (item.getAttribute('href') === currentPath) {
+                    item.classList.add('active');
+                }
+            });
+        });
+    </script>
+    
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

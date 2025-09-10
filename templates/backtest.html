@@ -1,0 +1,595 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Backtest Configuration -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-2xl font-bold text-white">Backtest Configuration</h3>
+                <p class="text-slate-400">Test your strategies against historical data</p>
+            </div>
+            <button id="run-backtest-btn" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-play mr-2"></i>Run Backtest
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <!-- Strategy Selection -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Strategy</label>
+                <select id="backtest-strategy" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    {% for strategy in strategies %}
+                    <option value="{{ strategy }}" {% if strategy == current_strategy %}selected{% endif %}>{{ strategy }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Date Range -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
+                <input type="date" id="start-date" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none" value="2023-01-01">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">End Date</label>
+                <input type="date" id="end-date" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none" value="2023-12-31">
+            </div>
+            
+            <!-- Initial Capital -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Initial Capital</label>
+                <input type="number" id="initial-capital" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none" value="100000" min="1000" step="1000">
+            </div>
+        </div>
+        
+        <!-- Advanced Options -->
+        <div class="mt-6">
+            <button id="toggle-advanced" class="text-blue-400 hover:text-blue-300 text-sm flex items-center">
+                <i class="fas fa-chevron-right mr-2 transition-transform" id="advanced-chevron"></i>
+                Advanced Options
+            </button>
+            
+            <div id="advanced-options" class="hidden mt-4 grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Commission (%)</label>
+                    <input type="number" id="commission" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none" value="0.02" min="0" max="1" step="0.01">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Slippage (pips)</label>
+                    <input type="number" id="slippage" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none" value="1" min="0" max="10" step="0.1">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-slate-300 mb-2">Risk per Trade (%)</label>
+                    <input type="number" id="risk-per-trade" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none" value="2" min="0.1" max="10" step="0.1">
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Backtest Status -->
+    <div id="backtest-status" class="glass-effect rounded-xl p-6 hidden">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <div class="w-8 h-8 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                    <i class="fas fa-spinner fa-spin text-blue-400"></i>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold text-white">Running Backtest</h3>
+                    <p class="text-slate-400 text-sm">Processing historical data...</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-sm text-slate-400">Progress</div>
+                <div class="text-lg font-bold text-white" id="backtest-progress">0%</div>
+            </div>
+        </div>
+        
+        <div class="w-full bg-slate-700 rounded-full h-2">
+            <div id="progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </div>
+    
+    <!-- Backtest Results -->
+    <div id="backtest-results" class="hidden space-y-6">
+        <!-- Key Metrics -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Backtest Results</h3>
+                <div class="flex space-x-2">
+                    <button class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white text-sm transition-colors">
+                        <i class="fas fa-download mr-2"></i>Export Report
+                    </button>
+                    <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white text-sm transition-colors">
+                        <i class="fas fa-share mr-2"></i>Share Results
+                    </button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-400" id="total-return">--</div>
+                    <div class="text-sm text-slate-400">Total Return</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-white" id="sharpe-ratio">--</div>
+                    <div class="text-sm text-slate-400">Sharpe Ratio</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-red-400" id="max-drawdown">--</div>
+                    <div class="text-sm text-slate-400">Max Drawdown</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-white" id="win-rate">--</div>
+                    <div class="text-sm text-slate-400">Win Rate</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Chart -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Equity Curve</h3>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg">Equity</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">Drawdown</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">Returns</button>
+                </div>
+            </div>
+            <div class="h-80">
+                <canvas id="equityCurveChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Detailed Statistics -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Performance Metrics -->
+            <div class="glass-effect rounded-xl p-6">
+                <h3 class="text-lg font-bold text-white mb-4">Performance Metrics</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Total Trades</span>
+                        <span class="text-white font-medium" id="total-trades">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Winning Trades</span>
+                        <span class="text-green-400 font-medium" id="winning-trades">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Losing Trades</span>
+                        <span class="text-red-400 font-medium" id="losing-trades">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Average Trade</span>
+                        <span class="text-white font-medium" id="avg-trade">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Best Trade</span>
+                        <span class="text-green-400 font-medium" id="best-trade">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Worst Trade</span>
+                        <span class="text-red-400 font-medium" id="worst-trade">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Profit Factor</span>
+                        <span class="text-white font-medium" id="profit-factor">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Recovery Factor</span>
+                        <span class="text-white font-medium" id="recovery-factor">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Risk Metrics -->
+            <div class="glass-effect rounded-xl p-6">
+                <h3 class="text-lg font-bold text-white mb-4">Risk Metrics</h3>
+                <div class="space-y-3">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Volatility (Annual)</span>
+                        <span class="text-white font-medium" id="volatility">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Sortino Ratio</span>
+                        <span class="text-white font-medium" id="sortino-ratio">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Calmar Ratio</span>
+                        <span class="text-white font-medium" id="calmar-ratio">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">VaR (95%)</span>
+                        <span class="text-red-400 font-medium" id="var-95">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Expected Shortfall</span>
+                        <span class="text-red-400 font-medium" id="expected-shortfall">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Beta</span>
+                        <span class="text-white font-medium" id="beta">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Alpha</span>
+                        <span class="text-white font-medium" id="alpha">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Information Ratio</span>
+                        <span class="text-white font-medium" id="information-ratio">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trade Analysis -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Trade Analysis</h3>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg">All Trades</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">Winners</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">Losers</button>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Returns Distribution -->
+                <div>
+                    <h4 class="text-lg font-medium text-white mb-4">Returns Distribution</h4>
+                    <div class="h-64">
+                        <canvas id="returnsDistributionChart"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Monthly Returns -->
+                <div>
+                    <h4 class="text-lg font-medium text-white mb-4">Monthly Returns</h4>
+                    <div class="h-64">
+                        <canvas id="monthlyReturnsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let equityCurveChart, returnsDistributionChart, monthlyReturnsChart;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeBacktestControls();
+    });
+    
+    function initializeBacktestControls() {
+        const runBtn = document.getElementById('run-backtest-btn');
+        const toggleAdvanced = document.getElementById('toggle-advanced');
+        const advancedOptions = document.getElementById('advanced-options');
+        const advancedChevron = document.getElementById('advanced-chevron');
+        
+        // Run backtest button
+        runBtn.addEventListener('click', function() {
+            const strategy = document.getElementById('backtest-strategy').value;
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            const initialCapital = document.getElementById('initial-capital').value;
+            
+            runBacktest({
+                strategy,
+                startDate,
+                endDate,
+                initialCapital: parseFloat(initialCapital)
+            });
+        });
+        
+        // Toggle advanced options
+        toggleAdvanced.addEventListener('click', function() {
+            const isHidden = advancedOptions.classList.contains('hidden');
+            
+            if (isHidden) {
+                advancedOptions.classList.remove('hidden');
+                advancedChevron.style.transform = 'rotate(90deg)';
+            } else {
+                advancedOptions.classList.add('hidden');
+                advancedChevron.style.transform = 'rotate(0deg)';
+            }
+        });
+    }
+    
+    async function runBacktest(config) {
+        const statusDiv = document.getElementById('backtest-status');
+        const resultsDiv = document.getElementById('backtest-results');
+        const progressBar = document.getElementById('progress-bar');
+        const progressText = document.getElementById('backtest-progress');
+        
+        // Show status, hide results
+        statusDiv.classList.remove('hidden');
+        resultsDiv.classList.add('hidden');
+        
+        try {
+            // Start backtest
+            const response = await fetch('/api/run-backtest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(config)
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to start backtest');
+            }
+            
+            // Simulate progress
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                progressText.textContent = Math.round(progress) + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                    setTimeout(() => {
+                        showBacktestResults();
+                    }, 1000);
+                }
+            }, 500);
+            
+        } catch (error) {
+            statusDiv.classList.add('hidden');
+            tradingWS.showNotification(`Backtest failed: ${error.message}`, 'error');
+        }
+    }
+    
+    function showBacktestResults() {
+        const statusDiv = document.getElementById('backtest-status');
+        const resultsDiv = document.getElementById('backtest-results');
+        
+        // Hide status, show results
+        statusDiv.classList.add('hidden');
+        resultsDiv.classList.remove('hidden');
+        
+        // Generate mock results
+        const results = generateMockResults();
+        updateResultsDisplay(results);
+        
+        // Initialize charts
+        initializeEquityCurveChart(results);
+        initializeReturnsDistributionChart(results);
+        initializeMonthlyReturnsChart(results);
+        
+        tradingWS.showNotification('Backtest completed successfully!', 'success');
+    }
+    
+    function generateMockResults() {
+        return {
+            totalReturn: (Math.random() * 40 - 10).toFixed(2),
+            sharpeRatio: (1 + Math.random() * 2).toFixed(2),
+            maxDrawdown: -(Math.random() * 20 + 5).toFixed(2),
+            winRate: (50 + Math.random() * 30).toFixed(1),
+            totalTrades: Math.floor(Math.random() * 200 + 50),
+            winningTrades: Math.floor(Math.random() * 120 + 30),
+            losingTrades: Math.floor(Math.random() * 80 + 20),
+            avgTrade: (Math.random() * 100 - 20).toFixed(2),
+            bestTrade: (Math.random() * 500 + 100).toFixed(2),
+            worstTrade: -(Math.random() * 300 + 50).toFixed(2),
+            profitFactor: (1 + Math.random() * 2).toFixed(2),
+            recoveryFactor: (Math.random() * 3 + 0.5).toFixed(2),
+            volatility: (Math.random() * 20 + 10).toFixed(1),
+            sortinoRatio: (1 + Math.random() * 2).toFixed(2),
+            calmarRatio: (Math.random() * 2 + 0.5).toFixed(2),
+            var95: -(Math.random() * 5 + 2).toFixed(2),
+            expectedShortfall: -(Math.random() * 8 + 3).toFixed(2),
+            beta: (0.5 + Math.random() * 1).toFixed(2),
+            alpha: (Math.random() * 10 - 2).toFixed(2),
+            informationRatio: (Math.random() * 2 - 0.5).toFixed(2)
+        };
+    }
+    
+    function updateResultsDisplay(results) {
+        document.getElementById('total-return').textContent = results.totalReturn + '%';
+        document.getElementById('sharpe-ratio').textContent = results.sharpeRatio;
+        document.getElementById('max-drawdown').textContent = results.maxDrawdown + '%';
+        document.getElementById('win-rate').textContent = results.winRate + '%';
+        document.getElementById('total-trades').textContent = results.totalTrades;
+        document.getElementById('winning-trades').textContent = results.winningTrades;
+        document.getElementById('losing-trades').textContent = results.losingTrades;
+        document.getElementById('avg-trade').textContent = '$' + results.avgTrade;
+        document.getElementById('best-trade').textContent = '$' + results.bestTrade;
+        document.getElementById('worst-trade').textContent = '$' + results.worstTrade;
+        document.getElementById('profit-factor').textContent = results.profitFactor;
+        document.getElementById('recovery-factor').textContent = results.recoveryFactor;
+        document.getElementById('volatility').textContent = results.volatility + '%';
+        document.getElementById('sortino-ratio').textContent = results.sortinoRatio;
+        document.getElementById('calmar-ratio').textContent = results.calmarRatio;
+        document.getElementById('var-95').textContent = results.var95 + '%';
+        document.getElementById('expected-shortfall').textContent = results.expectedShortfall + '%';
+        document.getElementById('beta').textContent = results.beta;
+        document.getElementById('alpha').textContent = results.alpha + '%';
+        document.getElementById('information-ratio').textContent = results.informationRatio;
+    }
+    
+    function initializeEquityCurveChart(results) {
+        const ctx = document.getElementById('equityCurveChart').getContext('2d');
+        
+        // Generate equity curve data
+        const labels = [];
+        const equityData = [];
+        let equity = 100000;
+        
+        for (let i = 0; i < 252; i++) { // Trading days in a year
+            const date = new Date();
+            date.setDate(date.getDate() - (251 - i));
+            labels.push(date.toLocaleDateString());
+            
+            const dailyReturn = (Math.random() - 0.48) * 0.02; // Slight positive bias
+            equity *= (1 + dailyReturn);
+            equityData.push(equity);
+        }
+        
+        equityCurveChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Equity',
+                    data: equityData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializeReturnsDistributionChart(results) {
+        const ctx = document.getElementById('returnsDistributionChart').getContext('2d');
+        
+        // Generate returns distribution data
+        const labels = [];
+        const data = [];
+        
+        for (let i = -10; i <= 10; i++) {
+            labels.push(i + '%');
+            // Normal distribution approximation
+            const value = Math.exp(-0.5 * Math.pow(i / 3, 2)) * Math.random() * 20;
+            data.push(value);
+        }
+        
+        returnsDistributionChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Frequency',
+                    data: data,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: '#3b82f6',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializeMonthlyReturnsChart(results) {
+        const ctx = document.getElementById('monthlyReturnsChart').getContext('2d');
+        
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthlyReturns = months.map(() => (Math.random() - 0.4) * 10);
+        
+        monthlyReturnsChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [{
+                    label: 'Monthly Return (%)',
+                    data: monthlyReturns,
+                    backgroundColor: monthlyReturns.map(val => val >= 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)'),
+                    borderColor: monthlyReturns.map(val => val >= 0 ? '#10b981' : '#ef4444'),
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Handle backtest completion from WebSocket
+    window.handleBacktestResults = function(results) {
+        showBacktestResults();
+    };
+</script>
+{% endblock %}

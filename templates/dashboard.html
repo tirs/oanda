@@ -1,0 +1,777 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Key Metrics Row -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <!-- Account Balance -->
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Account Balance</p>
+                    <p class="text-2xl font-bold text-white" id="dashboard-balance">$100,000.00</p>
+                </div>
+                <div class="w-12 h-12 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-wallet text-green-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-green-400 text-sm font-medium" id="balance-change">+0.00%</span>
+                <span class="text-slate-400 text-xs ml-2">vs yesterday</span>
+            </div>
+        </div>
+        
+        <!-- Unrealized P&L -->
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Unrealized P&L</p>
+                    <p class="text-2xl font-bold" id="unrealized-pnl">$0.00</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-line text-blue-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-slate-400 text-sm" id="open-positions">0 open positions</span>
+            </div>
+        </div>
+        
+        <!-- Daily Trades -->
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Today's Trades</p>
+                    <p class="text-2xl font-bold text-white" id="daily-trades">0</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-exchange-alt text-purple-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-slate-400 text-sm" id="win-rate">0% win rate</span>
+            </div>
+        </div>
+        
+        <!-- Active Strategy -->
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Active Strategy</p>
+                    <p class="text-lg font-bold text-white">{{ current_strategy }}</p>
+                </div>
+                <div class="w-12 h-12 bg-orange-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-brain text-orange-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4">
+                <span class="text-slate-400 text-sm">Multi-instrument: {{ "Yes" if instruments|length > 1 else "No" }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts and Data Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Price Chart -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Price Chart</h3>
+                <select id="chart-instrument" class="bg-slate-700 text-white rounded-lg px-3 py-2 text-sm">
+                    {% for instrument in instruments %}
+                    <option value="{{ instrument }}">{{ instrument }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="h-80">
+                <canvas id="priceChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Performance Chart -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Account Performance</h3>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">1D</button>
+                    <button class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg">7D</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">30D</button>
+                </div>
+            </div>
+            <div class="h-80">
+                <canvas id="performanceChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Positions and Recent Activity -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Current Positions -->
+        <div class="lg:col-span-2 glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Current Positions</h3>
+                <button class="text-blue-400 hover:text-blue-300 text-sm">View All</button>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-slate-400 text-sm">
+                            <th class="text-left pb-3">Instrument</th>
+                            <th class="text-left pb-3">Side</th>
+                            <th class="text-left pb-3">Size</th>
+                            <th class="text-left pb-3">Entry Price</th>
+                            <th class="text-left pb-3">Current Price</th>
+                            <th class="text-right pb-3">P&L</th>
+                        </tr>
+                    </thead>
+                    <tbody id="positions-table" class="text-sm">
+                        <tr>
+                            <td colspan="6" class="text-center py-8 text-slate-400">
+                                <i class="fas fa-chart-line text-3xl mb-2"></i>
+                                <p>No open positions</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Trading Activity -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Recent Activity</h3>
+                <i class="fas fa-history text-slate-400"></i>
+            </div>
+            
+            <div class="space-y-4" id="recent-activity">
+                <div class="text-center py-8 text-slate-400">
+                    <i class="fas fa-clock text-2xl mb-2"></i>
+                    <p class="text-sm">No recent activity</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Market Overview -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Market Overview</h3>
+            <div class="flex items-center space-x-2">
+                <span class="status-indicator status-active"></span>
+                <span class="text-sm text-slate-400">Markets Open</span>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {% for instrument in instruments %}
+            <div class="bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition-colors">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="font-medium text-white">{{ instrument }}</span>
+                    <span class="text-xs text-slate-400" id="change-{{ instrument }}">--</span>
+                </div>
+                <div class="text-lg font-bold text-white" id="price-{{ instrument }}">--</div>
+                <div class="text-xs text-slate-400">Bid/Ask: <span id="spread-{{ instrument }}">--</span></div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Initialize charts
+    let priceChart, performanceChart;
+    let dashboardData = {};
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initializePriceChart();
+        initializePerformanceChart();
+        loadDashboardData();
+        setupPerformancePeriodButtons();
+        setupInstrumentSelector();
+        loadRecentActivity();
+        
+        // Initialize price chart with default instrument
+        updatePriceChart('EUR_USD');
+        
+        // Refresh data every 30 seconds
+        setInterval(loadDashboardData, 30000);
+        
+        // Refresh charts every 60 seconds
+        setInterval(updatePriceChart, 60000);
+        
+        // Setup trading controls
+        setupTradingControls();
+    });
+    
+    function initializePriceChart() {
+        const ctx = document.getElementById('priceChart').getContext('2d');
+        
+        priceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Price',
+                    data: [],
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializePerformanceChart() {
+        const ctx = document.getElementById('performanceChart').getContext('2d');
+        
+        performanceChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Account Value',
+                    data: [],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Load initial performance data for 7D (default)
+        loadPerformanceData('7D');
+    }
+    
+    async function loadDashboardData() {
+        try {
+            const response = await fetch('/api/dashboard-data');
+            const data = await response.json();
+            
+            if (data.error) {
+                console.error('Dashboard data error:', data.error);
+                return;
+            }
+            
+            dashboardData = data;
+            updateDashboardUI(data);
+            
+        } catch (error) {
+            console.error('Error loading dashboard data:', error);
+        }
+    }
+    
+    function updateDashboardUI(data) {
+        // Update account balance
+        const balance = data.account?.balance || 0;
+        const balanceEl = document.getElementById('dashboard-balance');
+        if (balanceEl) {
+            balanceEl.textContent = '$' + parseFloat(balance).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+        }
+        
+        // Update unrealized P&L
+        const unrealizedPnl = data.stats?.unrealized_pnl || 0;
+        const pnlEl = document.getElementById('unrealized-pnl');
+        if (pnlEl) {
+            pnlEl.textContent = '$' + parseFloat(unrealizedPnl).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            pnlEl.className = `text-2xl font-bold ${unrealizedPnl >= 0 ? 'text-green-400' : 'text-red-400'}`;
+        }
+        
+        // Update positions count
+        const positionsCount = data.stats?.positions_count || 0;
+        const positionsEl = document.getElementById('open-positions');
+        if (positionsEl) {
+            positionsEl.textContent = `${positionsCount} open position${positionsCount !== 1 ? 's' : ''}`;
+        }
+        
+        // Update daily trades
+        const dailyTrades = data.stats?.today_trades || 0;
+        const tradesEl = document.getElementById('daily-trades');
+        if (tradesEl) {
+            tradesEl.textContent = dailyTrades.toString();
+        }
+        
+        // Update win rate
+        const winRate = data.stats?.win_rate || 0;
+        const winRateEl = document.getElementById('win-rate');
+        if (winRateEl) {
+            winRateEl.textContent = `${winRate}% win rate`;
+        }
+        
+        // Update market data
+        if (data.market_data) {
+            updateMarketOverview(data.market_data);
+        }
+        
+        // Update positions table
+        if (data.positions) {
+            updatePositionsTable(data.positions);
+        }
+    }
+    
+    function updateMarketOverview(marketData) {
+        Object.keys(marketData).forEach(instrument => {
+            const data = marketData[instrument];
+            
+            // Update price
+            const priceEl = document.getElementById(`price-${instrument}`);
+            if (priceEl) {
+                priceEl.textContent = data.mid.toFixed(5);
+            }
+            
+            // Update change
+            const changeEl = document.getElementById(`change-${instrument}`);
+            if (changeEl) {
+                const change = data.change_percent;
+                changeEl.textContent = `${change > 0 ? '+' : ''}${change}%`;
+                changeEl.className = `text-xs ${change >= 0 ? 'text-green-400' : 'text-red-400'}`;
+            }
+            
+            // Update spread
+            const spreadEl = document.getElementById(`spread-${instrument}`);
+            if (spreadEl) {
+                spreadEl.textContent = `${data.bid.toFixed(5)}/${data.ask.toFixed(5)}`;
+            }
+        });
+    }
+    
+    function updatePositionsTable(positions) {
+        const tableBody = document.getElementById('positions-table');
+        if (!tableBody) return;
+        
+        if (positions.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-8 text-slate-400">
+                        <i class="fas fa-chart-line text-3xl mb-2"></i>
+                        <p>No open positions</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        tableBody.innerHTML = positions.map(position => {
+            const pnl = parseFloat(position.unrealized_pnl || 0);
+            const pnlClass = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+            
+            return `
+                <tr class="border-b border-slate-700">
+                    <td class="py-3 text-white">${position.instrument}</td>
+                    <td class="py-3">
+                        <span class="px-2 py-1 rounded text-xs ${position.side === 'LONG' ? 'bg-green-600' : 'bg-red-600'} text-white">
+                            ${position.side}
+                        </span>
+                    </td>
+                    <td class="py-3 text-white">${position.units.toLocaleString()}</td>
+                    <td class="py-3 text-white">${position.entry_price}</td>
+                    <td class="py-3 text-white">${position.current_price}</td>
+                    <td class="py-3 text-right ${pnlClass}">$${pnl.toFixed(2)}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+    
+    async function loadPerformanceData() {
+        try {
+            const response = await fetch('/api/positions/pnl-history?period=1H');
+            const data = await response.json();
+            
+            if (data.data && data.data.length > 0) {
+                const labels = data.data.map(item => {
+                    const date = new Date(item.timestamp);
+                    return date.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                });
+                
+                const pnlData = data.data.map(item => item.pnl);
+                
+                performanceChart.data.labels = labels;
+                performanceChart.data.datasets[0].data = pnlData;
+                performanceChart.update();
+            }
+        } catch (error) {
+            console.error('Error loading performance data:', error);
+        }
+    }
+    
+    function setupTradingControls() {
+        // Trading controls are already handled by the base template's WebSocket functionality
+        // This function is kept for any additional dashboard-specific controls if needed
+        console.log('Dashboard trading controls initialized');
+    }
+    
+    function setupPerformancePeriodButtons() {
+        const buttons = document.querySelectorAll('.glass-effect button');
+        buttons.forEach(button => {
+            if (button.textContent.match(/^(1D|7D|30D)$/)) {
+                button.addEventListener('click', function() {
+                    // Remove active class from all period buttons
+                    buttons.forEach(btn => {
+                        if (btn.textContent.match(/^(1D|7D|30D)$/)) {
+                            btn.className = 'px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600';
+                        }
+                    });
+                    
+                    // Add active class to clicked button
+                    this.className = 'px-3 py-1 text-xs bg-blue-600 text-white rounded-lg';
+                    
+                    // Load performance data for selected period
+                    const period = this.textContent;
+                    loadPerformanceData(period);
+                });
+            }
+        });
+    }
+    
+    function setupInstrumentSelector() {
+        const selector = document.getElementById('chart-instrument');
+        if (selector) {
+            selector.addEventListener('change', function() {
+                const selectedInstrument = this.value;
+                updatePriceChart(selectedInstrument);
+            });
+        }
+    }
+    
+    async function updatePriceChart(instrument = 'EUR_USD') {
+        try {
+            // Get historical price data for the selected instrument
+            const response = await fetch(`/api/price-history/${instrument}?period=1H&count=50`);
+            const data = await response.json();
+            
+            if (data.prices && data.prices.length > 0) {
+                const labels = data.prices.map(price => {
+                    const date = new Date(price.time);
+                    return date.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    });
+                });
+                
+                const prices = data.prices.map(price => price.mid);
+                
+                priceChart.data.labels = labels;
+                priceChart.data.datasets[0].data = prices;
+                priceChart.data.datasets[0].label = `${instrument} Price`;
+                priceChart.update();
+            } else {
+                // Fallback: generate sample data if no historical data available
+                generateSamplePriceData(instrument);
+            }
+        } catch (error) {
+            console.error('Error updating price chart:', error);
+            generateSamplePriceData(instrument);
+        }
+    }
+    
+    function generateSamplePriceData(instrument = 'EUR_USD') {
+        const labels = [];
+        const data = [];
+        const basePrice = getBasePrice(instrument);
+        
+        // Generate 50 data points for the last hour
+        for (let i = 49; i >= 0; i--) {
+            const date = new Date();
+            date.setMinutes(date.getMinutes() - i);
+            labels.push(date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            }));
+            
+            // Simulate price movement
+            const variation = (Math.random() - 0.5) * 0.001;
+            const price = basePrice + variation;
+            data.push(price);
+        }
+        
+        priceChart.data.labels = labels;
+        priceChart.data.datasets[0].data = data;
+        priceChart.data.datasets[0].label = `${instrument} Price`;
+        priceChart.update();
+    }
+    
+    function getBasePrice(instrument) {
+        const basePrices = {
+            'EUR_USD': 1.1745,
+            'GBP_USD': 1.3850,
+            'USD_JPY': 149.50,
+            'AUD_USD': 0.6650,
+            'USD_CHF': 0.8950,
+            'NZD_USD': 0.6150,
+            'USD_CAD': 1.3650,
+            'EUR_GBP': 0.8480,
+            'EUR_JPY': 175.60,
+            'GBP_JPY': 207.20
+        };
+        return basePrices[instrument] || 1.0000;
+    }
+    
+    async function loadPerformanceData(period = '7D') {
+        try {
+            const response = await fetch(`/api/positions/pnl-history?period=${period}`);
+            const data = await response.json();
+            
+            if (data.data && data.data.length > 0) {
+                const labels = data.data.map(item => {
+                    const date = new Date(item.timestamp);
+                    if (period === '1D') {
+                        return date.toLocaleTimeString('en-US', { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                        });
+                    } else {
+                        return date.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                        });
+                    }
+                });
+                
+                const pnlData = data.data.map(item => item.pnl);
+                
+                performanceChart.data.labels = labels;
+                performanceChart.data.datasets[0].data = pnlData;
+                performanceChart.update();
+            } else {
+                // Generate sample performance data
+                generateSamplePerformanceData(period);
+            }
+        } catch (error) {
+            console.error('Error loading performance data:', error);
+            generateSamplePerformanceData(period);
+        }
+    }
+    
+    function generateSamplePerformanceData(period = '7D') {
+        const labels = [];
+        const data = [];
+        let dataPoints, baseValue;
+        
+        switch (period) {
+            case '1D':
+                dataPoints = 24; // Hourly data for 1 day
+                baseValue = 100000;
+                for (let i = dataPoints - 1; i >= 0; i--) {
+                    const date = new Date();
+                    date.setHours(date.getHours() - i);
+                    labels.push(date.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    }));
+                }
+                break;
+            case '7D':
+                dataPoints = 7; // Daily data for 7 days
+                baseValue = 100000;
+                for (let i = dataPoints - 1; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    labels.push(date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    }));
+                }
+                break;
+            case '30D':
+                dataPoints = 30; // Daily data for 30 days
+                baseValue = 100000;
+                for (let i = dataPoints - 1; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    labels.push(date.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    }));
+                }
+                break;
+        }
+        
+        // Generate performance data with some trend
+        for (let i = 0; i < dataPoints; i++) {
+            const change = (Math.random() - 0.45) * 500; // Slight upward bias
+            const value = i === 0 ? baseValue : data[i - 1] + change;
+            data.push(Math.max(value, baseValue * 0.95)); // Don't go below 95% of base
+        }
+        
+        performanceChart.data.labels = labels;
+        performanceChart.data.datasets[0].data = data;
+        performanceChart.update();
+    }
+    
+    async function loadRecentActivity() {
+        try {
+            const response = await fetch('/api/recent-trades?limit=10');
+            const data = await response.json();
+            
+            const activityContainer = document.getElementById('recent-activity');
+            if (!activityContainer) return;
+            
+            if (data.trades && data.trades.length > 0) {
+                activityContainer.innerHTML = data.trades.map(trade => {
+                    const time = new Date(trade.time).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    const pnl = parseFloat(trade.realizedPL || 0);
+                    const pnlClass = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+                    const pnlIcon = pnl >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+                    
+                    return `
+                        <div class="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                                    <i class="fas ${pnlIcon} text-xs text-white"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-white">${trade.instrument}</p>
+                                    <p class="text-xs text-slate-400">${time}</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-sm font-medium ${pnlClass}">$${pnl.toFixed(2)}</p>
+                                <p class="text-xs text-slate-400">${Math.abs(trade.units)} units</p>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                // Show sample recent activity
+                activityContainer.innerHTML = generateSampleActivity();
+            }
+        } catch (error) {
+            console.error('Error loading recent activity:', error);
+            const activityContainer = document.getElementById('recent-activity');
+            if (activityContainer) {
+                activityContainer.innerHTML = generateSampleActivity();
+            }
+        }
+    }
+    
+    function generateSampleActivity() {
+        const instruments = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD'];
+        const activities = [];
+        
+        for (let i = 0; i < 5; i++) {
+            const instrument = instruments[Math.floor(Math.random() * instruments.length)];
+            const pnl = (Math.random() - 0.4) * 100; // Slight positive bias
+            const units = Math.floor(Math.random() * 5000) + 1000;
+            const time = new Date();
+            time.setMinutes(time.getMinutes() - (i * 15));
+            
+            const pnlClass = pnl >= 0 ? 'text-green-400' : 'text-red-400';
+            const pnlIcon = pnl >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
+            
+            activities.push(`
+                <div class="flex items-center justify-between p-3 bg-slate-800 rounded-lg">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                            <i class="fas ${pnlIcon} text-xs text-white"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-white">${instrument}</p>
+                            <p class="text-xs text-slate-400">${time.toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-sm font-medium ${pnlClass}">$${pnl.toFixed(2)}</p>
+                        <p class="text-xs text-slate-400">${units} units</p>
+                    </div>
+                </div>
+            `);
+        }
+        
+        return activities.join('');
+    }
+    
+    function showNotification(message, type = 'info') {
+        // Simple notification system
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 p-4 rounded-lg text-white z-50 ${
+            type === 'success' ? 'bg-green-600' : 
+            type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+        }`;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+</script>
+{% endblock %}

@@ -55,3 +55,39 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Virtual environments
+bot/
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Test files
+test_*.py
+*_test.py
+
+# Local data
+data/
+*.csv
+
+# TA-Lib source (not needed for deployment)
+ta-lib/

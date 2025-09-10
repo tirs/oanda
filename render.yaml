@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: oanda-trading-bot
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements_render.txt
+    startCommand: python -m uvicorn app:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: ACCESS_TOKEN
+        sync: false
+      - key: ACCOUNT_ID
+        sync: false
+      - key: ENVIRONMENT
+        value: practice
+      - key: PORT
+        value: 8000
+    healthCheckPath: /health

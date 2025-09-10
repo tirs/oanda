@@ -1,9 +1,9 @@
 import backtrader
-import btplotting
+# import btplotting
 import datetime
 import importlib
 import settings
-import support
+# import support
 
 class HistDataCSVData(backtrader.feeds.GenericCSVData):
     params = (
@@ -39,7 +39,7 @@ class KaiDataCSVData(backtrader.feeds.GenericCSVData):
     )
 
 def load_backtest_data():
-
+    """Load single instrument data for backtesting"""
     data = None
 
     if settings.BACKTESTING_FORMAT == "KAIDATA":
@@ -57,6 +57,36 @@ def load_backtest_data():
             dtformat="%Y%m%d %H%M%S")
 
     return data
+
+
+def load_multi_instrument_data():
+    """Load data for multiple instruments"""
+    import os
+    
+    data_feeds = []
+    data_dir = "data"
+    
+    # Use instruments from settings
+    instruments = getattr(settings, 'INSTRUMENTS', [settings.INSTRUMENT])
+    
+    for instrument in instruments:
+        filename = f"{data_dir}/{instrument}_H1.csv"
+        if os.path.exists(filename):
+            data = KaiDataCSVData(
+                dataname=filename,
+                separator='\t',
+                timeframe=backtrader.TimeFrame.Minutes,
+                compression=60,
+                fromdate=datetime.datetime(2010, 1, 1),
+                todate=datetime.datetime(2010, 4, 1)
+            )
+            data._name = instrument  # Add name for identification
+            data_feeds.append(data)
+            print(f"Loaded data for {instrument}")
+        else:
+            print(f"Data file not found for {instrument}: {filename}")
+            
+    return data_feeds
 
 
 def strategy_class(class_name):
@@ -78,7 +108,7 @@ def addTradeAnalyzers(cerebro):
     cerebro.addanalyzer(backtrader.analyzers.DrawDown, _name='drawdown')
     cerebro.addanalyzer(backtrader.analyzers.SharpeRatio, _name='sharpe', riskfreerate=0.0, annualize=True,
                         timeframe=backtrader.TimeFrame.Minutes)
-    cerebro.addanalyzer(backtrader.analyzers.VWR, _name='vwr')
+    # cerebro.addanalyzer(backtrader.analyzers.VWR, _name='vwr')
     cerebro.addanalyzer(backtrader.analyzers.SQN, _name='sqn')
     cerebro.addanalyzer(backtrader.analyzers.Transactions, _name='txn')
 
@@ -119,13 +149,25 @@ def printTradeAnalysis(cerebro, startfund, analyzers):
         print('\n')
 
     if hasattr(analyzers, 'drawdown'):
-        pretty_print(format, 'Drawdown', '${}'.format(analyzers.drawdown.get_analysis()['drawdown']))
+        dd_analysis = analyzers.drawdown.get_analysis()
+        drawdown = dd_analysis.get('drawdown', 0)
+        pretty_print(format, 'Drawdown', '${}'.format(drawdown))
+        
     if hasattr(analyzers, 'sharpe'):
-        pretty_print(format, 'Sharpe Ratio:', analyzers.sharpe.get_analysis()['sharperatio'])
-    if hasattr(analyzers, 'vwr'):
-        pretty_print(format, 'VRW', analyzers.vwr.get_analysis()['vwr'])
+        sharpe_analysis = analyzers.sharpe.get_analysis()
+        sharpe_ratio = sharpe_analysis.get('sharperatio', 'N/A')
+        if sharpe_ratio is not None:
+            pretty_print(format, 'Sharpe Ratio:', sharpe_ratio)
+        else:
+            pretty_print(format, 'Sharpe Ratio:', 'N/A')
+            
     if hasattr(analyzers, 'sqn'):
-        pretty_print(format, 'SQN', analyzers.sqn.get_analysis()['sqn'])
+        sqn_analysis = analyzers.sqn.get_analysis()
+        sqn_value = sqn_analysis.get('sqn', 'N/A')
+        if sqn_value is not None:
+            pretty_print(format, 'SQN', sqn_value)
+        else:
+            pretty_print(format, 'SQN', 'N/A')
     print('\n')
 
     print('Transactions')
@@ -137,17 +179,48 @@ def printTradeAnalysis(cerebro, startfund, analyzers):
 
                 
 def backtest():
+    """Run backtest - supports both single and multi-instrument modes"""
     cerebro = backtrader.Cerebro()
-    data = load_backtest_data()
-    cerebro.adddata(data)
-    cerebro.addstrategy(strategy_class(settings.STRATEGY_NAME))
-    cerebro.addsizer(backtrader.sizers.percents_sizer.PercentSizer, percents = settings.MAX_PERCENTAGE_ACCOUNT_AT_RISK)
-    cerebro.broker.setcommission(commission=0.001, leverage=50)
+    
+    # Check if multi-instrument mode is enabled
+    if getattr(settings, 'MULTI_INSTRUMENT_MODE', False):
+        print("Running Multi-Instrument Backtest...")
+        data_feeds = load_multi_instrument_data()
+        
+        if not data_feeds:
+            print("No data feeds loaded. Falling back to single instrument mode.")
+            data = load_backtest_data()
+            cerebro.adddata(data)
+        else:
+            for data in data_feeds:
+                cerebro.adddata(data)
+                
+        # Use MultiInstrumentStrategy for multi-instrument mode
+        from strategy import MultiInstrumentStrategy
+        cerebro.addstrategy(MultiInstrumentStrategy)
+        
+    else:
+        print("Running Single-Instrument Backtest...")
+        data = load_backtest_data()
+        cerebro.adddata(data)
+        cerebro.addstrategy(strategy_class(settings.STRATEGY_NAME))
+    
+    # Set up broker
+    cerebro.broker.setcash(100000)  # Start with $100,000
+    cerebro.addsizer(backtrader.sizers.percents_sizer.PercentSizer, 
+                    percents=settings.MAX_PERCENTAGE_ACCOUNT_AT_RISK)
+    cerebro.broker.setcommission(commission=0.0002, leverage=50)  # 0.02% commission, 50:1 leverage
+    
+    # Add analyzers
     addTradeAnalyzers(cerebro)
+    
+    # Run backtest
+    print(f'Starting Portfolio Value: ${cerebro.broker.getvalue():.2f}')
     results = cerebro.run()
-    printTradeAnalysis(cerebro, 10000, results[0].analyzers)
-    plotter = btplotting.BacktraderPlotting(style='bar')
-    cerebro.plot(plotter)
+    print(f'Final Portfolio Value: ${cerebro.broker.getvalue():.2f}')
+    
+    # Print results
+    printTradeAnalysis(cerebro, 100000, results[0].analyzers)
 
 
 if __name__ == "__main__":

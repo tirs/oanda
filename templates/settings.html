@@ -1,0 +1,654 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Account Settings -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">Account Settings</h3>
+                <p class="text-slate-400">OANDA account configuration</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+                    <span class="status-indicator status-active"></span>
+                    <span class="text-green-400 text-sm">{{ settings.environment|title }} Environment</span>
+                </div>
+                <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors">
+                    <i class="fas fa-save mr-2"></i>Save Account Settings
+                </button>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Account ID</label>
+                <input type="text" name="account_id" value="{{ settings.account_id }}" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none" placeholder="Enter your OANDA Account ID">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Environment</label>
+                <select name="environment" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    <option value="practice" {% if settings.environment == 'practice' %}selected{% endif %}>Practice</option>
+                    <option value="live" {% if settings.environment == 'live' %}selected{% endif %}>Live</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Access Token</label>
+                <div class="relative">
+                    <input type="password" name="access_token" id="access-token-input" value="{{ settings.access_token|default('') }}" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none pr-10" placeholder="Enter your OANDA API Access Token">
+                    <button type="button" id="toggle-token-visibility" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-white">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Account Currency</label>
+                <select name="account_currency" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    <option value="USD" {% if settings.account_currency == 'USD' or not settings.account_currency %}selected{% endif %}>USD</option>
+                    <option value="EUR" {% if settings.account_currency == 'EUR' %}selected{% endif %}>EUR</option>
+                    <option value="GBP" {% if settings.account_currency == 'GBP' %}selected{% endif %}>GBP</option>
+                    <option value="JPY" {% if settings.account_currency == 'JPY' %}selected{% endif %}>JPY</option>
+                    <option value="AUD" {% if settings.account_currency == 'AUD' %}selected{% endif %}>AUD</option>
+                    <option value="CAD" {% if settings.account_currency == 'CAD' %}selected{% endif %}>CAD</option>
+                    <option value="CHF" {% if settings.account_currency == 'CHF' %}selected{% endif %}>CHF</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trading Settings -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">Trading Settings</h3>
+                <p class="text-slate-400">Configure trading parameters and instruments</p>
+            </div>
+            <button class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-save mr-2"></i>Save Changes
+            </button>
+        </div>
+        
+        <div class="space-y-6">
+            <!-- Multi-Instrument Mode -->
+            <div class="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                <div>
+                    <h4 class="text-lg font-medium text-white">Multi-Instrument Trading</h4>
+                    <p class="text-slate-400 text-sm">Trade multiple currency pairs simultaneously</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="multi_instrument_mode" class="sr-only peer" {% if settings.multi_instrument_mode %}checked{% endif %}>
+                    <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            
+            <!-- Instruments Selection -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-3">Trading Instruments</label>
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+                    {% for instrument in ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD', 'USD_CHF', 'NZD_USD', 'USD_CAD', 'EUR_GBP', 'EUR_JPY', 'GBP_JPY'] %}
+                    <label class="flex items-center p-3 bg-slate-800 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors">
+                        <input type="checkbox" name="instrument_{{ instrument }}" class="mr-3 text-blue-600 bg-slate-700 border-slate-600 rounded focus:ring-blue-500" {% if instrument in settings.instruments %}checked{% endif %}>
+                        <span class="text-white text-sm font-medium">{{ instrument }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <!-- Strategy Selection -->
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Active Strategy</label>
+                <select name="strategy_name" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    <option value="QuantitativeAlphaStrategy" {% if settings.strategy_name == 'QuantitativeAlphaStrategy' %}selected{% endif %}>Quantitative Alpha Strategy</option>
+                    <option value="ProfessionalScalpingStrategy" {% if settings.strategy_name == 'ProfessionalScalpingStrategy' %}selected{% endif %}>Professional Scalping Strategy</option>
+                    <option value="InstitutionalBreakoutStrategy" {% if settings.strategy_name == 'InstitutionalBreakoutStrategy' %}selected{% endif %}>Institutional Breakout Strategy</option>
+                    <option value="MachineLearningMomentumStrategy" {% if settings.strategy_name == 'MachineLearningMomentumStrategy' %}selected{% endif %}>Machine Learning Momentum Strategy</option>
+                    <option value="MultiInstrumentStrategy" {% if settings.strategy_name == 'MultiInstrumentStrategy' %}selected{% endif %}>Multi-Instrument Strategy</option>
+                    <option value="AdvancedMultiStrategy" {% if settings.strategy_name == 'AdvancedMultiStrategy' %}selected{% endif %}>Advanced Multi Strategy</option>
+                    <option value="MomentumStrategy" {% if settings.strategy_name == 'MomentumStrategy' %}selected{% endif %}>Momentum Strategy</option>
+                    <option value="MeanReversionStrategy" {% if settings.strategy_name == 'MeanReversionStrategy' %}selected{% endif %}>Mean Reversion Strategy</option>
+                </select>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Risk Management -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">Risk Management</h3>
+                <p class="text-slate-400">Configure risk parameters and position sizing</p>
+            </div>
+            <div class="text-sm text-slate-400">
+                <i class="fas fa-shield-alt mr-1"></i>
+                Conservative Risk Profile
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Max Risk per Trade (%)</label>
+                <div class="relative">
+                    <input type="number" name="max_percentage_risk" value="{{ settings.risk_settings.max_percentage_risk }}" min="0.1" max="10" step="0.1" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">%</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">Maximum percentage of account to risk per trade</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Max Total Exposure (%)</label>
+                <div class="relative">
+                    <input type="number" name="max_total_exposure" value="{{ settings.risk_settings.max_total_exposure }}" min="1" max="50" step="1" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    <span class="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">%</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">Maximum total exposure across all positions</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Max Correlated Positions</label>
+                <input type="number" name="max_correlated_positions" value="{{ settings.risk_settings.max_correlated_positions }}" min="1" max="10" step="1" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                <p class="text-xs text-slate-400 mt-1">Maximum positions in correlated instruments</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Stop Loss (ATR Multiple)</label>
+                <input type="number" value="2.0" min="0.5" max="5" step="0.1" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                <p class="text-xs text-slate-400 mt-1">Stop loss distance as ATR multiple</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Take Profit (ATR Multiple)</label>
+                <input type="number" value="3.0" min="1" max="10" step="0.1" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                <p class="text-xs text-slate-400 mt-1">Take profit distance as ATR multiple</p>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Max Daily Loss ($)</label>
+                <input type="number" value="1000" min="100" max="10000" step="100" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                <p class="text-xs text-slate-400 mt-1">Maximum daily loss before stopping</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Notifications -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">Notifications</h3>
+                <p class="text-slate-400">Configure alerts and email notifications</p>
+            </div>
+        </div>
+        
+        <div class="space-y-4">
+            <div class="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                <div>
+                    <h4 class="text-lg font-medium text-white">Email Notifications</h4>
+                    <p class="text-slate-400 text-sm">Receive trade alerts via email</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="email_notifications" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                <div>
+                    <h4 class="text-lg font-medium text-white">Trade Execution Alerts</h4>
+                    <p class="text-slate-400 text-sm">Get notified when trades are opened/closed</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="trade_alerts" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                <div>
+                    <h4 class="text-lg font-medium text-white">Risk Alerts</h4>
+                    <p class="text-slate-400 text-sm">Alerts when risk limits are approached</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="risk_alerts" class="sr-only peer" checked>
+                    <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+            
+            <div class="flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+                <div>
+                    <h4 class="text-lg font-medium text-white">Performance Reports</h4>
+                    <p class="text-slate-400 text-sm">Weekly performance summary emails</p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" name="performance_reports" class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <label class="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
+            <input type="email" name="email_address" value="{{ settings.email_recipient|default('trader@example.com') }}" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+        </div>
+    </div>
+    
+    <!-- Advanced Settings -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">Advanced Settings</h3>
+                <p class="text-slate-400">Technical configuration and logging</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Candle Timeframe (minutes)</label>
+                <select name="candles_minutes" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    <option value="1">1 Minute</option>
+                    <option value="5">5 Minutes</option>
+                    <option value="15">15 Minutes</option>
+                    <option value="30">30 Minutes</option>
+                    <option value="60" selected>1 Hour</option>
+                    <option value="240">4 Hours</option>
+                    <option value="1440">Daily</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Log Level</label>
+                <select class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+                    <option value="DEBUG">Debug</option>
+                    <option value="INFO" selected>Info</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="ERROR">Error</option>
+                </select>
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">API Timeout (seconds)</label>
+                <input type="number" value="30" min="5" max="120" step="5" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-slate-300 mb-2">Max Retries</label>
+                <input type="number" value="3" min="1" max="10" step="1" class="w-full bg-slate-700 text-white rounded-lg px-3 py-2 border border-slate-600 focus:border-blue-500 focus:outline-none">
+            </div>
+        </div>
+        
+        <div class="mt-6 flex items-center justify-between p-4 bg-slate-800 rounded-lg">
+            <div>
+                <h4 class="text-lg font-medium text-white">Debug Mode</h4>
+                <p class="text-slate-400 text-sm">Enable detailed logging and debugging</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" name="debug_mode" class="sr-only peer">
+                <div class="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
+        </div>
+    </div>
+    
+    <!-- System Status -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h3 class="text-xl font-bold text-white">System Status</h3>
+                <p class="text-slate-400">Current system health and performance</p>
+            </div>
+            <button class="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-white text-sm transition-colors">
+                <i class="fas fa-sync mr-2"></i>Refresh Status
+            </button>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div id="oanda-status" class="bg-slate-800 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-slate-400 text-sm">OANDA API</span>
+                    <span class="status-indicator status-active"></span>
+                </div>
+                <div class="text-white font-medium">Connected</div>
+                <div class="text-xs text-slate-400">Last ping: 45ms</div>
+            </div>
+            
+            <div id="engine-status" class="bg-slate-800 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-slate-400 text-sm">Trading Engine</span>
+                    <span class="status-indicator status-active"></span>
+                </div>
+                <div class="text-white font-medium">Running</div>
+                <div class="text-xs text-slate-400">Uptime: 2h 34m</div>
+            </div>
+            
+            <div id="data-status" class="bg-slate-800 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-slate-400 text-sm">Data Feed</span>
+                    <span class="status-indicator status-active"></span>
+                </div>
+                <div class="text-white font-medium">Active</div>
+                <div class="text-xs text-slate-400">Last update: 2s ago</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="flex justify-between">
+        <div class="space-x-3">
+            <button class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-power-off mr-2"></i>Emergency Stop
+            </button>
+            <button class="bg-yellow-600 hover:bg-yellow-700 px-6 py-3 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-undo mr-2"></i>Reset to Defaults
+            </button>
+        </div>
+        
+        <div class="space-x-3">
+            <button class="bg-slate-700 hover:bg-slate-600 px-6 py-3 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-times mr-2"></i>Cancel
+            </button>
+            <button class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-save mr-2"></i>Save All Changes
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        setupSettingsHandlers();
+    });
+    
+    function setupSettingsHandlers() {
+        // Save button handlers
+        const saveButtons = document.querySelectorAll('button');
+        saveButtons.forEach(button => {
+            if (button.textContent.includes('Save')) {
+                button.addEventListener('click', function() {
+                    saveSettings();
+                });
+            }
+        });
+        
+        // Emergency stop button
+        const emergencyStopBtn = Array.from(document.querySelectorAll('button')).find(btn => 
+            btn.textContent.includes('Emergency Stop')
+        );
+        if (emergencyStopBtn) {
+            emergencyStopBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to perform an emergency stop? This will close all positions and stop trading immediately.')) {
+                    emergencyStop();
+                }
+            });
+        }
+        
+        // Reset to defaults button
+        const resetBtn = Array.from(document.querySelectorAll('button')).find(btn => 
+            btn.textContent.includes('Reset to Defaults')
+        );
+        
+        // Password visibility toggle
+        const toggleButton = document.getElementById('toggle-token-visibility');
+        const tokenInput = document.getElementById('access-token-input');
+        
+        if (toggleButton && tokenInput) {
+            toggleButton.addEventListener('click', function() {
+                const icon = toggleButton.querySelector('i');
+                if (tokenInput.type === 'password') {
+                    tokenInput.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    tokenInput.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
+                }
+            });
+        }
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to reset all settings to defaults? This action cannot be undone.')) {
+                    resetToDefaults();
+                }
+            });
+        }
+        
+        // Refresh status button
+        const refreshBtn = Array.from(document.querySelectorAll('button')).find(btn => 
+            btn.textContent.includes('Refresh Status')
+        );
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', function() {
+                refreshSystemStatus();
+            });
+        }
+        
+        // Toggle switches
+        const toggles = document.querySelectorAll('input[type="checkbox"]');
+        toggles.forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                // Visual feedback for toggle changes
+                const parent = this.closest('.bg-slate-800');
+                if (parent) {
+                    parent.classList.add('ring-2', 'ring-blue-500');
+                    setTimeout(() => {
+                        parent.classList.remove('ring-2', 'ring-blue-500');
+                    }, 1000);
+                }
+            });
+        });
+    }
+    
+    async function saveSettings() {
+        try {
+            // Collect all form data
+            const formData = collectFormData();
+            
+            // Send to API
+            const response = await fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+            
+            if (response.ok) {
+                tradingWS.showNotification('Settings saved successfully', 'success');
+            } else {
+                throw new Error('Failed to save settings');
+            }
+        } catch (error) {
+            tradingWS.showNotification(`Failed to save settings: ${error.message}`, 'error');
+        }
+    }
+    
+    async function emergencyStop() {
+        try {
+            const response = await fetch('/api/emergency-stop', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                tradingWS.showNotification('Emergency stop executed successfully', 'success');
+            } else {
+                throw new Error('Failed to execute emergency stop');
+            }
+        } catch (error) {
+            tradingWS.showNotification(`Emergency stop failed: ${error.message}`, 'error');
+        }
+    }
+    
+    async function resetToDefaults() {
+        try {
+            const response = await fetch('/api/reset-settings', {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                // Reload the page to show updated settings
+                window.location.reload();
+            } else {
+                throw new Error('Failed to reset settings');
+            }
+        } catch (error) {
+            if (typeof tradingWS !== 'undefined' && tradingWS.showNotification) {
+                tradingWS.showNotification(`Failed to reset settings: ${error.message}`, 'error');
+            } else {
+                alert(`Failed to reset settings: ${error.message}`);
+            }
+        }
+    }
+    
+    async function refreshSystemStatus() {
+        try {
+            const response = await fetch('/api/system-status');
+            if (response.ok) {
+                const status = await response.json();
+                updateSystemStatusDisplay(status);
+                if (typeof tradingWS !== 'undefined' && tradingWS.showNotification) {
+                    tradingWS.showNotification('System status refreshed', 'success');
+                } else {
+                    console.log('System status refreshed');
+                }
+            } else {
+                throw new Error('Failed to refresh status');
+            }
+        } catch (error) {
+            if (typeof tradingWS !== 'undefined' && tradingWS.showNotification) {
+                tradingWS.showNotification(`Failed to refresh status: ${error.message}`, 'error');
+            } else {
+                alert(`Failed to refresh status: ${error.message}`);
+            }
+        }
+    }
+    
+    function updateSystemStatusDisplay(status) {
+        // Update OANDA API status
+        const oandaCard = document.getElementById('oanda-status');
+        if (oandaCard) {
+            const statusElement = oandaCard.querySelector('.text-white.font-medium');
+            const detailElement = oandaCard.querySelector('.text-xs.text-slate-400');
+            if (statusElement) statusElement.textContent = status.oanda_api.status;
+            if (detailElement) detailElement.textContent = `Last ping: ${status.oanda_api.ping}`;
+        }
+        
+        // Update Trading Engine status
+        const engineCard = document.getElementById('engine-status');
+        if (engineCard) {
+            const statusElement = engineCard.querySelector('.text-white.font-medium');
+            const detailElement = engineCard.querySelector('.text-xs.text-slate-400');
+            if (statusElement) statusElement.textContent = status.trading_engine.status;
+            if (detailElement) detailElement.textContent = `Uptime: ${status.trading_engine.uptime}`;
+        }
+        
+        // Update Data Feed status
+        const dataCard = document.getElementById('data-status');
+        if (dataCard) {
+            const statusElement = dataCard.querySelector('.text-white.font-medium');
+            const detailElement = dataCard.querySelector('.text-xs.text-slate-400');
+            if (statusElement) statusElement.textContent = status.data_feed.status;
+            if (detailElement) detailElement.textContent = `Last update: ${status.data_feed.last_update}`;
+        }
+    }
+    
+    function collectFormData() {
+        const formData = {};
+        
+        // Account Settings
+        const accountIdInput = document.querySelector('input[name="account_id"]');
+        if (accountIdInput) {
+            formData.account_id = accountIdInput.value.trim();
+        }
+        
+        const environmentSelect = document.querySelector('select[name="environment"]');
+        if (environmentSelect) {
+            formData.environment = environmentSelect.value;
+        }
+        
+        const accessTokenInput = document.querySelector('input[name="access_token"]');
+        if (accessTokenInput) {
+            formData.access_token = accessTokenInput.value.trim();
+        }
+        
+        const accountCurrencySelect = document.querySelector('select[name="account_currency"]');
+        if (accountCurrencySelect) {
+            formData.account_currency = accountCurrencySelect.value;
+        }
+        
+        // Multi-instrument mode toggle
+        const multiInstrumentToggle = document.querySelector('input[name="multi_instrument_mode"]');
+        if (multiInstrumentToggle) {
+            formData.multi_instrument_mode = multiInstrumentToggle.checked;
+        }
+        
+        // Selected instruments
+        const selectedInstruments = [];
+        const instrumentCheckboxes = document.querySelectorAll('input[name^="instrument_"]');
+        instrumentCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) {
+                const instrumentName = checkbox.name.replace('instrument_', '');
+                selectedInstruments.push(instrumentName);
+            }
+        });
+        formData.instruments = selectedInstruments;
+        
+        // Strategy selection
+        const strategySelect = document.querySelector('select[name="strategy_name"]');
+        if (strategySelect) {
+            formData.strategy_name = strategySelect.value;
+        }
+        
+        // Risk management settings
+        const maxRiskInput = document.querySelector('input[name="max_percentage_risk"]');
+        if (maxRiskInput) {
+            formData.max_percentage_risk = parseFloat(maxRiskInput.value);
+        }
+        
+        const maxExposureInput = document.querySelector('input[name="max_total_exposure"]');
+        if (maxExposureInput) {
+            formData.max_total_exposure = parseFloat(maxExposureInput.value);
+        }
+        
+        const maxCorrelatedInput = document.querySelector('input[name="max_correlated_positions"]');
+        if (maxCorrelatedInput) {
+            formData.max_correlated_positions = parseInt(maxCorrelatedInput.value);
+        }
+        
+        // Candle timeframe
+        const timeframeSelect = document.querySelector('select[name="candles_minutes"]');
+        if (timeframeSelect) {
+            formData.candles_minutes = parseInt(timeframeSelect.value);
+        }
+        
+        // Email address
+        const emailInput = document.querySelector('input[name="email_address"]');
+        if (emailInput) {
+            formData.email_address = emailInput.value;
+        }
+        
+        // Debug mode
+        const debugModeInput = document.querySelector('input[name="debug_mode"]');
+        if (debugModeInput) {
+            formData.debug_mode = debugModeInput.checked;
+        }
+        
+        // Notification settings
+        const emailNotifications = document.querySelector('input[name="email_notifications"]');
+        const tradeAlerts = document.querySelector('input[name="trade_alerts"]');
+        const riskAlerts = document.querySelector('input[name="risk_alerts"]');
+        const performanceReports = document.querySelector('input[name="performance_reports"]');
+        
+        formData.notifications = {
+            email_enabled: emailNotifications ? emailNotifications.checked : false,
+            trade_alerts: tradeAlerts ? tradeAlerts.checked : false,
+            risk_alerts: riskAlerts ? riskAlerts.checked : false,
+            performance_reports: performanceReports ? performanceReports.checked : false
+        };
+        
+        console.log('Collected form data:', formData);
+        return formData;
+    }
+</script>
+{% endblock %}

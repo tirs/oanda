@@ -1,0 +1,1072 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Analytics Header with Refresh Button -->
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-white">Performance Analytics</h1>
+            <p class="text-slate-400 mt-2">Real-time trading performance and risk analysis</p>
+        </div>
+        <div class="flex space-x-3">
+            <button id="run-backtest" class="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-play mr-2"></i>Run Backtest
+            </button>
+            <button id="refresh-analytics" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors">
+                <i class="fas fa-sync mr-2"></i>Refresh Data
+            </button>
+        </div>
+    </div>
+    <!-- Performance Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Total Return</p>
+                    <p class="text-2xl font-bold text-green-400" id="total-return">+12.5%</p>
+                </div>
+                <div class="w-12 h-12 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-trending-up text-green-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-green-400 text-sm font-medium">+2.3%</span>
+                <span class="text-slate-400 text-xs ml-2">this month</span>
+            </div>
+        </div>
+        
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Sharpe Ratio</p>
+                    <p class="text-2xl font-bold text-white" id="sharpe-ratio">1.85</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-chart-line text-blue-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-slate-400 text-sm">Risk-adjusted return</span>
+            </div>
+        </div>
+        
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Max Drawdown</p>
+                    <p class="text-2xl font-bold text-red-400" id="max-drawdown">-8.2%</p>
+                </div>
+                <div class="w-12 h-12 bg-red-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-arrow-down text-red-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-slate-400 text-sm">Peak to trough</span>
+            </div>
+        </div>
+        
+        <div class="metric-card rounded-xl p-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-slate-400 text-sm">Win Rate</p>
+                    <p class="text-2xl font-bold text-white" id="win-rate">68.4%</p>
+                </div>
+                <div class="w-12 h-12 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-target text-purple-400 text-xl"></i>
+                </div>
+            </div>
+            <div class="mt-4 flex items-center">
+                <span class="text-green-400 text-sm font-medium">+3.2%</span>
+                <span class="text-slate-400 text-xs ml-2">vs last month</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Analytics Charts -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Equity Curve -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Equity Curve</h3>
+                <div class="flex space-x-2">
+                    <button class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg">1M</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">3M</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">6M</button>
+                    <button class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">1Y</button>
+                </div>
+            </div>
+            <div class="h-80">
+                <canvas id="equityChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Drawdown Chart -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Drawdown Analysis</h3>
+                <div class="text-sm text-slate-400">Underwater curve</div>
+            </div>
+            <div class="h-80">
+                <canvas id="drawdownChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Metrics -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Risk Metrics -->
+        <div class="glass-effect rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-6">Risk Metrics</h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Volatility (Annual)</span>
+                    <span class="text-white font-medium">15.2%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Sortino Ratio</span>
+                    <span class="text-white font-medium">2.14</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Calmar Ratio</span>
+                    <span class="text-white font-medium">1.52</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">VaR (95%)</span>
+                    <span class="text-red-400 font-medium">-2.8%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Expected Shortfall</span>
+                    <span class="text-red-400 font-medium">-4.1%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Beta</span>
+                    <span class="text-white font-medium">0.85</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Alpha</span>
+                    <span class="text-green-400 font-medium">+3.2%</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Trade Statistics -->
+        <div class="glass-effect rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-6">Trade Statistics</h3>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Total Trades</span>
+                    <span class="text-white font-medium">1,247</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Winning Trades</span>
+                    <span class="text-green-400 font-medium">853</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Losing Trades</span>
+                    <span class="text-red-400 font-medium">394</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Average Trade</span>
+                    <span class="text-white font-medium">$45.20</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Best Trade</span>
+                    <span class="text-green-400 font-medium">$1,250.00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Worst Trade</span>
+                    <span class="text-red-400 font-medium">-$485.00</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">Profit Factor</span>
+                    <span class="text-white font-medium">2.16</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Monthly Performance -->
+        <div class="glass-effect rounded-xl p-6">
+            <h3 class="text-lg font-bold text-white mb-6">Monthly Performance</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">January</span>
+                    <span class="text-green-400 font-medium">+2.8%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">February</span>
+                    <span class="text-red-400 font-medium">-1.2%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">March</span>
+                    <span class="text-green-400 font-medium">+4.1%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">April</span>
+                    <span class="text-green-400 font-medium">+1.9%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">May</span>
+                    <span class="text-green-400 font-medium">+3.2%</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-slate-400">June</span>
+                    <span class="text-green-400 font-medium">+2.1%</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-slate-700 pt-3">
+                    <span class="text-white font-medium">YTD Total</span>
+                    <span class="text-green-400 font-bold">+12.5%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Advanced Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Returns Distribution -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Returns Distribution</h3>
+                <div class="text-sm text-slate-400">Daily returns histogram</div>
+            </div>
+            <div class="h-64">
+                <canvas id="returnsDistChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Rolling Sharpe Ratio -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Rolling Sharpe Ratio</h3>
+                <div class="text-sm text-slate-400">30-day rolling window</div>
+            </div>
+            <div class="h-64">
+                <canvas id="rollingSharpeChart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Strategy Performance Breakdown -->
+    <div class="glass-effect rounded-xl p-6">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-bold text-white">Strategy Performance Breakdown</h3>
+            <div class="flex space-x-2">
+                <button id="strategy-all-time" class="px-3 py-1 text-xs bg-blue-600 text-white rounded-lg">All Time</button>
+                <button id="strategy-30-days" class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">Last 30 Days</button>
+                <button id="strategy-90-days" class="px-3 py-1 text-xs bg-slate-700 text-white rounded-lg hover:bg-slate-600">Last 90 Days</button>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table id="strategy-breakdown-table" class="w-full">
+                <thead>
+                    <tr class="text-slate-400 text-sm border-b border-slate-700">
+                        <th class="text-left pb-3">Instrument</th>
+                        <th class="text-center pb-3">Trades</th>
+                        <th class="text-center pb-3">Win Rate</th>
+                        <th class="text-center pb-3">Total P&L</th>
+                        <th class="text-center pb-3">Avg Trade</th>
+                        <th class="text-center pb-3">Best Trade</th>
+                        <th class="text-center pb-3">Worst Trade</th>
+                        <th class="text-center pb-3">Profit Factor</th>
+                    </tr>
+                </thead>
+                <tbody id="strategy-breakdown-tbody" class="text-sm">
+                    <tr class="border-b border-slate-700 hover:bg-slate-800">
+                        <td class="py-3 font-medium">EUR_USD</td>
+                        <td class="py-3 text-center">245</td>
+                        <td class="py-3 text-center">72.1%</td>
+                        <td class="py-3 text-center text-green-400">+$3,250.00</td>
+                        <td class="py-3 text-center">$13.27</td>
+                        <td class="py-3 text-center text-green-400">$450.00</td>
+                        <td class="py-3 text-center text-red-400">-$125.00</td>
+                        <td class="py-3 text-center">2.85</td>
+                    </tr>
+                    <tr class="border-b border-slate-700 hover:bg-slate-800">
+                        <td class="py-3 font-medium">GBP_USD</td>
+                        <td class="py-3 text-center">198</td>
+                        <td class="py-3 text-center">65.7%</td>
+                        <td class="py-3 text-center text-green-400">+$2,890.00</td>
+                        <td class="py-3 text-center">$14.60</td>
+                        <td class="py-3 text-center text-green-400">$520.00</td>
+                        <td class="py-3 text-center text-red-400">-$180.00</td>
+                        <td class="py-3 text-center">2.12</td>
+                    </tr>
+                    <tr class="border-b border-slate-700 hover:bg-slate-800">
+                        <td class="py-3 font-medium">USD_JPY</td>
+                        <td class="py-3 text-center">187</td>
+                        <td class="py-3 text-center">68.4%</td>
+                        <td class="py-3 text-center text-green-400">+$2,150.00</td>
+                        <td class="py-3 text-center">$11.50</td>
+                        <td class="py-3 text-center text-green-400">$380.00</td>
+                        <td class="py-3 text-center text-red-400">-$95.00</td>
+                        <td class="py-3 text-center">2.45</td>
+                    </tr>
+                    <tr class="border-b border-slate-700 hover:bg-slate-800">
+                        <td class="py-3 font-medium">AUD_USD</td>
+                        <td class="py-3 text-center">156</td>
+                        <td class="py-3 text-center">61.5%</td>
+                        <td class="py-3 text-center text-green-400">+$1,780.00</td>
+                        <td class="py-3 text-center">$11.41</td>
+                        <td class="py-3 text-center text-green-400">$290.00</td>
+                        <td class="py-3 text-center text-red-400">-$150.00</td>
+                        <td class="py-3 text-center">1.89</td>
+                    </tr>
+                    <tr class="border-b border-slate-700 hover:bg-slate-800">
+                        <td class="py-3 font-medium">USD_CHF</td>
+                        <td class="py-3 text-center">142</td>
+                        <td class="py-3 text-center">69.7%</td>
+                        <td class="py-3 text-center text-green-400">+$1,650.00</td>
+                        <td class="py-3 text-center">$11.62</td>
+                        <td class="py-3 text-center text-green-400">$310.00</td>
+                        <td class="py-3 text-center text-red-400">-$85.00</td>
+                        <td class="py-3 text-center">2.67</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Risk Analysis -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Correlation Matrix -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Correlation Matrix</h3>
+                <div class="text-sm text-slate-400">Position correlations</div>
+            </div>
+            <div class="h-64">
+                <canvas id="correlationChart"></canvas>
+            </div>
+        </div>
+        
+        <!-- Risk Exposure -->
+        <div class="glass-effect rounded-xl p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-white">Risk Exposure</h3>
+                <div class="text-sm text-slate-400">By currency</div>
+            </div>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-400">USD Exposure</span>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-24 bg-slate-700 rounded-full h-2">
+                            <div class="bg-blue-500 h-2 rounded-full" style="width: 65%"></div>
+                        </div>
+                        <span class="text-white text-sm">65%</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-400">EUR Exposure</span>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-24 bg-slate-700 rounded-full h-2">
+                            <div class="bg-green-500 h-2 rounded-full" style="width: 45%"></div>
+                        </div>
+                        <span class="text-white text-sm">45%</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-400">GBP Exposure</span>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-24 bg-slate-700 rounded-full h-2">
+                            <div class="bg-yellow-500 h-2 rounded-full" style="width: 35%"></div>
+                        </div>
+                        <span class="text-white text-sm">35%</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-400">JPY Exposure</span>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-24 bg-slate-700 rounded-full h-2">
+                            <div class="bg-red-500 h-2 rounded-full" style="width: 25%"></div>
+                        </div>
+                        <span class="text-white text-sm">25%</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-400">AUD Exposure</span>
+                    <div class="flex items-center space-x-2">
+                        <div class="w-24 bg-slate-700 rounded-full h-2">
+                            <div class="bg-purple-500 h-2 rounded-full" style="width: 20%"></div>
+                        </div>
+                        <span class="text-white text-sm">20%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let equityChart, drawdownChart, returnsDistChart, rollingSharpeChart, correlationChart;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeAllCharts();
+        setupEventHandlers();
+        loadPerformanceMetrics();
+        loadMonthlyPerformance();
+        loadStrategyBreakdown();
+    });
+    
+    function setupEventHandlers() {
+        // Backtest button
+        const backtestButton = document.getElementById('run-backtest');
+        if (backtestButton) {
+            backtestButton.addEventListener('click', async function() {
+                // Add loading state
+                const icon = this.querySelector('i');
+                const originalText = this.innerHTML;
+                icon.classList.remove('fa-play');
+                icon.classList.add('fa-spinner', 'fa-spin');
+                this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Running Backtest...';
+                this.disabled = true;
+                
+                try {
+                    const response = await fetch('/api/analytics/run-backtest', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        alert('Backtest completed successfully!\n\nCheck the console for detailed results.');
+                        console.log('Backtest Results:', result.output);
+                        
+                        // Refresh analytics data after successful backtest
+                        loadPerformanceMetrics();
+                        loadMonthlyPerformance();
+                    } else {
+                        alert(`Backtest failed: ${result.message}`);
+                        if (result.error) {
+                            console.error('Backtest Error:', result.error);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Failed to run backtest:', error);
+                    alert('Failed to run backtest. Check console for details.');
+                } finally {
+                    // Remove loading state
+                    this.innerHTML = originalText;
+                    this.disabled = false;
+                }
+            });
+        }
+        
+        // Refresh button
+        const refreshButton = document.getElementById('refresh-analytics');
+        if (refreshButton) {
+            refreshButton.addEventListener('click', function() {
+                // Add loading state
+                const icon = this.querySelector('i');
+                icon.classList.add('fa-spin');
+                this.disabled = true;
+                
+                // Refresh all data
+                Promise.all([
+                    loadPerformanceMetrics(),
+                    loadMonthlyPerformance(),
+                    loadEquityCurve('1M'),
+                    loadDrawdownData(),
+                    loadReturnsDistribution(),
+                    loadRollingSharpe(),
+                    loadStrategyBreakdown('all')
+                ]).finally(() => {
+                    // Remove loading state
+                    icon.classList.remove('fa-spin');
+                    this.disabled = false;
+                });
+            });
+        }
+        
+        // Equity curve period buttons
+        const equityButtons = document.querySelectorAll('.glass-effect:first-child .flex.space-x-2 button');
+        equityButtons.forEach((button, index) => {
+            button.addEventListener('click', function() {
+                // Remove active class from all buttons
+                equityButtons.forEach(btn => {
+                    btn.classList.remove('bg-blue-600');
+                    btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                });
+                
+                // Add active class to clicked button
+                this.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+                this.classList.add('bg-blue-600');
+                
+                // Get period from button text
+                const periods = ['1M', '3M', '6M', '1Y'];
+                const period = periods[index];
+                loadEquityCurve(period);
+            });
+        });
+        
+        // Strategy breakdown period buttons using specific IDs
+        const strategyButtonIds = ['strategy-all-time', 'strategy-30-days', 'strategy-90-days'];
+        const strategyPeriods = ['all', '30', '90'];
+        
+        strategyButtonIds.forEach((buttonId, index) => {
+            const button = document.getElementById(buttonId);
+            if (button) {
+                button.addEventListener('click', function() {
+                    // Remove active class from all strategy buttons
+                    strategyButtonIds.forEach(id => {
+                        const btn = document.getElementById(id);
+                        if (btn) {
+                            btn.classList.remove('bg-blue-600');
+                            btn.classList.add('bg-slate-700', 'hover:bg-slate-600');
+                        }
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.remove('bg-slate-700', 'hover:bg-slate-600');
+                    this.classList.add('bg-blue-600');
+                    
+                    // Load data for the selected period
+                    const period = strategyPeriods[index];
+                    loadStrategyBreakdown(period);
+                });
+            }
+        });
+    }
+    
+    function initializeAllCharts() {
+        initializeEquityChart();
+        initializeDrawdownChart();
+        initializeReturnsDistChart();
+        initializeRollingSharpeChart();
+        initializeCorrelationChart();
+        
+        // Load initial data
+        loadEquityCurve('1M');
+        loadDrawdownData();
+        loadReturnsDistribution();
+        loadRollingSharpe();
+    }
+    
+    function initializeEquityChart() {
+        const ctx = document.getElementById('equityChart').getContext('2d');
+        
+        // Generate equity curve data
+        const labels = [];
+        const equityData = [];
+        let equity = 100000;
+        
+        for (let i = 0; i < 90; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - (89 - i));
+            labels.push(date.toLocaleDateString());
+            
+            const dailyReturn = (Math.random() - 0.45) * 0.02;
+            equity *= (1 + dailyReturn);
+            equityData.push(equity);
+        }
+        
+        equityChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Account Value',
+                    data: equityData,
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializeDrawdownChart() {
+        const ctx = document.getElementById('drawdownChart').getContext('2d');
+        
+        // Generate drawdown data
+        const labels = [];
+        const drawdownData = [];
+        let peak = 100000;
+        let equity = 100000;
+        
+        for (let i = 0; i < 90; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - (89 - i));
+            labels.push(date.toLocaleDateString());
+            
+            const dailyReturn = (Math.random() - 0.45) * 0.02;
+            equity *= (1 + dailyReturn);
+            
+            if (equity > peak) peak = equity;
+            const drawdown = ((equity - peak) / peak) * 100;
+            drawdownData.push(drawdown);
+        }
+        
+        drawdownChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Drawdown %',
+                    data: drawdownData,
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            callback: function(value) {
+                                return value.toFixed(1) + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializeReturnsDistChart() {
+        const ctx = document.getElementById('returnsDistChart').getContext('2d');
+        
+        // Generate returns distribution
+        const labels = [];
+        const data = [];
+        
+        for (let i = -5; i <= 5; i += 0.5) {
+            labels.push(i.toFixed(1) + '%');
+            // Normal distribution approximation
+            const value = Math.exp(-0.5 * Math.pow(i / 1.5, 2)) * Math.random() * 15 + 5;
+            data.push(value);
+        }
+        
+        returnsDistChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Frequency',
+                    data: data,
+                    backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                    borderColor: '#3b82f6',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializeRollingSharpeChart() {
+        const ctx = document.getElementById('rollingSharpeChart').getContext('2d');
+        
+        // Generate rolling Sharpe ratio data
+        const labels = [];
+        const sharpeData = [];
+        
+        for (let i = 0; i < 60; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() - (59 - i));
+            labels.push(date.toLocaleDateString());
+            
+            const sharpe = 1.5 + Math.sin(i / 10) * 0.5 + (Math.random() - 0.5) * 0.3;
+            sharpeData.push(sharpe);
+        }
+        
+        rollingSharpeChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Rolling Sharpe Ratio',
+                    data: sharpeData,
+                    borderColor: '#8b5cf6',
+                    backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    function initializeCorrelationChart() {
+        const ctx = document.getElementById('correlationChart').getContext('2d');
+        
+        // Create a simple correlation visualization
+        const instruments = ['EUR_USD', 'GBP_USD', 'USD_JPY', 'AUD_USD', 'USD_CHF'];
+        const correlations = [
+            [1.00, 0.85, -0.72, 0.68, -0.45],
+            [0.85, 1.00, -0.65, 0.72, -0.38],
+            [-0.72, -0.65, 1.00, -0.55, 0.42],
+            [0.68, 0.72, -0.55, 1.00, -0.35],
+            [-0.45, -0.38, 0.42, -0.35, 1.00]
+        ];
+        
+        // For simplicity, we'll show this as a bar chart of average correlations
+        const avgCorrelations = correlations.map((row, i) => {
+            const sum = row.reduce((acc, val, j) => i !== j ? acc + Math.abs(val) : acc, 0);
+            return sum / (row.length - 1);
+        });
+        
+        correlationChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: instruments,
+                datasets: [{
+                    label: 'Avg Correlation',
+                    data: avgCorrelations,
+                    backgroundColor: 'rgba(245, 158, 11, 0.6)',
+                    borderColor: '#f59e0b',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)'
+                        },
+                        ticks: {
+                            color: '#94a3b8',
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // API Loading Functions
+    async function loadPerformanceMetrics() {
+        try {
+            const response = await fetch('/api/analytics/performance-metrics');
+            const data = await response.json();
+            
+            // Update performance overview cards
+            document.getElementById('total-return').textContent = `+${data.total_return}%`;
+            document.getElementById('sharpe-ratio').textContent = data.sharpe_ratio;
+            document.getElementById('max-drawdown').textContent = `${data.max_drawdown}%`;
+            document.getElementById('win-rate').textContent = `${data.win_rate}%`;
+            
+            // Update risk metrics
+            updateRiskMetrics(data);
+            
+            // Update trade statistics
+            updateTradeStatistics(data);
+            
+        } catch (error) {
+            console.error('Failed to load performance metrics:', error);
+        }
+    }
+    
+    function updateRiskMetrics(data) {
+        const riskMetrics = document.querySelector('.glass-effect:nth-child(1) .space-y-4');
+        if (riskMetrics) {
+            const metrics = riskMetrics.querySelectorAll('.flex.justify-between span:last-child');
+            if (metrics.length >= 7) {
+                metrics[0].textContent = `${data.volatility}%`;
+                metrics[1].textContent = data.sortino_ratio;
+                metrics[2].textContent = data.calmar_ratio;
+                metrics[3].textContent = `${data.var_95}%`;
+                metrics[4].textContent = `${data.expected_shortfall}%`;
+                metrics[5].textContent = data.beta;
+                metrics[6].textContent = `+${data.alpha}%`;
+            }
+        }
+    }
+    
+    function updateTradeStatistics(data) {
+        const tradeStats = document.querySelector('.glass-effect:nth-child(2) .space-y-4');
+        if (tradeStats) {
+            const stats = tradeStats.querySelectorAll('.flex.justify-between span:last-child');
+            if (stats.length >= 7) {
+                stats[0].textContent = data.total_trades.toLocaleString();
+                stats[1].textContent = data.winning_trades.toLocaleString();
+                stats[2].textContent = data.losing_trades.toLocaleString();
+                stats[3].textContent = `$${data.average_trade}`;
+                stats[4].textContent = `$${data.best_trade}`;
+                stats[5].textContent = `$${data.worst_trade}`;
+                stats[6].textContent = data.profit_factor;
+            }
+        }
+    }
+    
+    async function loadMonthlyPerformance() {
+        try {
+            const response = await fetch('/api/analytics/monthly-performance');
+            const data = await response.json();
+            
+            const monthlyPerf = document.querySelector('.glass-effect:nth-child(3) .space-y-3');
+            if (monthlyPerf) {
+                const rows = monthlyPerf.querySelectorAll('.flex.justify-between');
+                data.data.forEach((item, index) => {
+                    if (rows[index]) {
+                        const valueSpan = rows[index].querySelector('span:last-child');
+                        if (valueSpan) {
+                            valueSpan.textContent = item.performance > 0 ? `+${item.performance}%` : `${item.performance}%`;
+                            valueSpan.className = item.performance > 0 ? 'text-green-400 font-medium' : 'text-red-400 font-medium';
+                            if (item.month === 'YTD Total') {
+                                valueSpan.className = 'text-green-400 font-bold';
+                            }
+                        }
+                    }
+                });
+            }
+        } catch (error) {
+            console.error('Failed to load monthly performance:', error);
+        }
+    }
+    
+    async function loadEquityCurve(period = '1M') {
+        try {
+            const response = await fetch(`/api/analytics/equity-curve?period=${period}`);
+            const result = await response.json();
+            
+            const labels = result.data.map(item => item.date);
+            const data = result.data.map(item => item.equity);
+            
+            equityChart.data.labels = labels;
+            equityChart.data.datasets[0].data = data;
+            equityChart.update();
+            
+        } catch (error) {
+            console.error('Failed to load equity curve:', error);
+        }
+    }
+    
+    async function loadDrawdownData() {
+        try {
+            const response = await fetch('/api/analytics/drawdown');
+            const result = await response.json();
+            
+            const labels = result.data.map(item => item.date);
+            const data = result.data.map(item => item.drawdown);
+            
+            drawdownChart.data.labels = labels;
+            drawdownChart.data.datasets[0].data = data;
+            drawdownChart.update();
+            
+        } catch (error) {
+            console.error('Failed to load drawdown data:', error);
+        }
+    }
+    
+    async function loadReturnsDistribution() {
+        try {
+            const response = await fetch('/api/analytics/returns-distribution');
+            const result = await response.json();
+            
+            const labels = result.data.map(item => item.bin);
+            const data = result.data.map(item => item.count);
+            
+            returnsDistChart.data.labels = labels;
+            returnsDistChart.data.datasets[0].data = data;
+            returnsDistChart.update();
+            
+        } catch (error) {
+            console.error('Failed to load returns distribution:', error);
+        }
+    }
+    
+    async function loadRollingSharpe() {
+        try {
+            const response = await fetch('/api/analytics/rolling-sharpe');
+            const result = await response.json();
+            
+            const labels = result.data.map(item => item.date);
+            const data = result.data.map(item => item.sharpe);
+            
+            rollingSharpeChart.data.labels = labels;
+            rollingSharpeChart.data.datasets[0].data = data;
+            rollingSharpeChart.update();
+            
+        } catch (error) {
+            console.error('Failed to load rolling Sharpe:', error);
+        }
+    }
+    
+    async function loadStrategyBreakdown(period = 'all') {
+        try {
+            console.log(`Loading strategy breakdown for period: ${period}`);
+            
+            const tbody = document.getElementById('strategy-breakdown-tbody');
+            if (!tbody) {
+                console.error('Strategy breakdown table not found');
+                return;
+            }
+            
+            // Show loading state
+            tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-slate-400"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</td></tr>';
+            
+            const response = await fetch(`/api/analytics/strategy-breakdown?period=${period}`);
+            const result = await response.json();
+            
+            console.log('Strategy breakdown data:', result);
+            
+            // Clear loading state and populate data
+            tbody.innerHTML = '';
+            
+            result.data.forEach(item => {
+                const row = document.createElement('tr');
+                row.className = 'border-b border-slate-700 hover:bg-slate-800';
+                
+                const pnlColor = item.total_pnl > 0 ? 'text-green-400' : 'text-red-400';
+                const pnlSign = item.total_pnl > 0 ? '+' : '';
+                const bestTradeColor = 'text-green-400';
+                const worstTradeColor = 'text-red-400';
+                
+                row.innerHTML = `
+                    <td class="py-3 font-medium">${item.instrument}</td>
+                    <td class="py-3 text-center">${item.trades}</td>
+                    <td class="py-3 text-center">${item.win_rate}%</td>
+                    <td class="py-3 text-center ${pnlColor}">${pnlSign}$${Math.abs(item.total_pnl).toFixed(2)}</td>
+                    <td class="py-3 text-center">$${item.avg_trade.toFixed(2)}</td>
+                    <td class="py-3 text-center ${bestTradeColor}">$${item.best_trade.toFixed(2)}</td>
+                    <td class="py-3 text-center ${worstTradeColor}">$${item.worst_trade.toFixed(2)}</td>
+                    <td class="py-3 text-center">${item.profit_factor.toFixed(2)}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+        } catch (error) {
+            console.error('Failed to load strategy breakdown:', error);
+            
+            // Show error state
+            const tbody = document.getElementById('strategy-breakdown-tbody');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="8" class="py-6 text-center text-red-400"><i class="fas fa-exclamation-triangle mr-2"></i>Failed to load data</td></tr>';
+            }
+        }
+    }
+    
+    // Auto-refresh data every 30 seconds
+    setInterval(() => {
+        loadPerformanceMetrics();
+        loadMonthlyPerformance();
+    }, 30000);
+</script>
+{% endblock %}
