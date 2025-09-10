@@ -20,12 +20,25 @@ from pathlib import Path
 import os
 import sys
 
-# Import our trading modules
-import settings
-import backtest
-import trade
-import strategy
-from strategy_selector import get_available_strategies, get_strategy_info
+# Import our trading modules with error handling
+try:
+    import settings
+    import backtest
+    import trade
+    import strategy
+    from strategy_selector import get_available_strategies, get_strategy_info
+    TRADING_MODULES_AVAILABLE = True
+    logger.info("✅ All trading modules loaded successfully")
+except ImportError as e:
+    logger.error(f"❌ Failed to import trading modules: {e}")
+    TRADING_MODULES_AVAILABLE = False
+    
+    # Create mock functions for missing modules
+    def get_available_strategies():
+        return {"mock_strategy": {"name": "Mock Strategy", "description": "Trading modules not available"}}
+    
+    def get_strategy_info(strategy_name):
+        return {"name": "Mock Strategy", "description": "Trading modules not available", "parameters": {}}
 
 # Configure logging with proper encoding for Windows
 import sys

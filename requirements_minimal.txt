@@ -23,3 +23,4 @@ matplotlib>=3.6.0
 
 # Essential trading
 backtrader
+git+https://github.com/happydasch/btoandav20@v0.2.1#egg=btoandav20
